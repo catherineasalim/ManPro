@@ -26,13 +26,15 @@ Project-ManPro-kel-20/
 ├── MetroPT3(AirCompressor).csv     <- put the dataset here
 ├── README.md
 └── anomaly_detection/
-    ├── preprocess_dataprep.py
-    ├── train_hybrid.py
+    ├── preprocessing/
+    ├── anomali/
+    ├── rul_final/
     ├── ...
     └── output/
 ```
 
-The code finds the file through this line in `anomaly_detection/preprocess_iforest.py`:
+The code finds the file through this line in `anomaly_detection/preprocessing/preprocess_iforest.py`
+(`BASE_DIR` is the `anomaly_detection/` folder):
 
 ```python
 CSV_PATH = BASE_DIR.parent / "MetroPT3(AirCompressor).csv"
@@ -67,7 +69,7 @@ python -m venv .venv
 # Windows (PowerShell):  .venv\Scripts\Activate.ps1
 # macOS / Linux:         source .venv/bin/activate
 
-pip install numpy pandas scikit-learn joblib matplotlib pyarrow
+pip install numpy pandas scikit-learn joblib matplotlib pyarrow xgboost
 ```
 
 Versions used during development: numpy 1.26.4, pandas 2.2.3, scikit-learn 1.6.0, joblib 1.4.2,
@@ -77,16 +79,23 @@ matplotlib 3.10.0, pyarrow 20.0.0.
 
 ## 3. Run the hybrid
 
-Run everything from inside `anomaly_detection/`. The scripts import each other
-(`evaluation.py`, `preprocess_iforest.py`, `model_iforest.py`, ...), so keep all `.py` files in that one folder.
+Run every command from the **repo root** (the folder with this README), with `python -m`.
+The code is split into subfolders by stage; the map of which file does what is in
+[`anomaly_detection/README.md`](anomaly_detection/README.md).
+
+To run every stage in order (tests, hybrid, charts, RUL models, report):
 
 ```bash
-cd anomaly_detection
+python -m anomaly_detection.run_all
+```
 
-python preprocess_dataprep.py   # optional: only if you want to rebuild output/dataprep/ from the CSV
-python train_hybrid.py          # train + walk-forward evaluation, writes output/hybrid/
-python test_hybrid.py           # 13 tests of the status rules (should end with "OK")
-python visualize_hybrid.py      # 8 PNG charts for the report -> output/hybrid/grafik/
+Or run the hybrid steps one by one:
+
+```bash
+python -m anomaly_detection.preprocessing.preprocess_dataprep   # optional: only to rebuild output/dataprep/ from the CSV
+python -m anomaly_detection.anomali.train_hybrid                # train + walk-forward evaluation, writes output/hybrid/
+python -m anomaly_detection.tests.test_hybrid                   # 13 tests of the status rules (should end with "OK")
+python -m anomaly_detection.anomali.visualize_hybrid            # 8 PNG charts for the report -> output/hybrid/grafik/
 ```
 
 **After a fresh clone, run `train_hybrid.py` before `visualize_hybrid.py`.** The charts read
@@ -96,7 +105,7 @@ These are not in the repo (they match `*.csv` in `.gitignore`), so `train_hybrid
 ### Options for `train_hybrid.py`
 
 ```bash
-python train_hybrid.py --seeds 42 7 --labels 16 4 --train-days 60   # these are the defaults
+python -m anomaly_detection.anomali.train_hybrid --seeds 42 7 --labels 16 4 --train-days 60   # these are the defaults
 ```
 
 | Option | Meaning |
@@ -143,7 +152,7 @@ The rules are checked in order and the first one that matches is used:
 | 5 | Otherwise | Hijau (green) |
 
 The full column descriptions, in Indonesian, are in
-[`anomaly_detection/HYBRID_KELUARAN.md`](anomaly_detection/HYBRID_KELUARAN.md).
+[`anomaly_detection/docs/HYBRID_KELUARAN.md`](anomaly_detection/docs/HYBRID_KELUARAN.md).
 
 ---
 
@@ -151,9 +160,9 @@ The full column descriptions, in Indonesian, are in
 
 ```python
 import joblib
-from hybrid import score_table
+from anomaly_detection.common.hybrid import score_table
 
-bundle = joblib.load("output/hybrid/hybrid_final.joblib")
+bundle = joblib.load("anomaly_detection/output/hybrid/hybrid_final.joblib")
 status = score_table(bundle, new_online_table)  # table must have the columns made by preprocess_dataprep.py
 ```
 
@@ -168,11 +177,48 @@ For a replay, read `status_walkforward.parquet`.
 | Problem | Fix |
 |---|---|
 | `FileNotFoundError: ... MetroPT3(AirCompressor).csv` | The CSV is missing or in the wrong place. Put it in the repo root with exactly that name (step 1) |
-| `FileNotFoundError: ... hasil_hybrid.csv` when making charts | Run `python train_hybrid.py` first |
-| `ModuleNotFoundError: No module named 'evaluation'` | Run the scripts from inside `anomaly_detection/`, and keep all `.py` files together |
+| `FileNotFoundError: ... hasil_hybrid.csv` when making charts | Run `python -m anomaly_detection.anomali.train_hybrid` first |
+| `ModuleNotFoundError: No module named 'anomaly_detection'` | Run from the repo root with `python -m anomaly_detection....`, not `python file.py` from inside a subfolder |
 | `ImportError: Unable to find a usable engine ... parquet` | `pip install pyarrow` |
 | Typing the filename in PowerShell fails | Put the name in quotes, because of the parentheses: `"MetroPT3(AirCompressor).csv"` |
 | A row-count check prints `BEDA` | The CSV is incomplete or was edited. Download it again |
+
+---
+
+## 7. RUL model, calibration and analysis
+
+Three scripts build on the hybrid. Details (in Indonesian) are in
+[`anomaly_detection/docs/MODEL_KELUARAN.md`](anomaly_detection/docs/MODEL_KELUARAN.md), and the full report is
+[`anomaly_detection/output/model/LAPORAN_ANALISIS.md`](anomaly_detection/output/model/LAPORAN_ANALISIS.md).
+
+```bash
+python -m anomaly_detection.rul_final.train_baseline          # 1. baseline RUL + anomaly models (Random Forest, XGBoost), first metrics
+python -m anomaly_detection.rul_final.train_final_calibrated  # 2. final calibrated models, optimised thresholds, exported to output/model/final/
+python -m anomaly_detection.laporan.analysis_report           # 3. FP/FN analysis, ROI in three scenarios, sensitivity, degradation patterns
+python -m anomaly_detection.tests.test_model                  # 8 tests of the shared functions
+python -m anomaly_detection.rul_final.predict                 # use the exported model on new data
+```
+
+Run `train_hybrid` first if `output/hybrid/status_walkforward.parquet` is missing. All choices (model, hyperparameters,
+calibration, thresholds) are made inside each training window, never on the test month or segment.
+
+Walk-forward results, April-August 2020:
+
+| | Best baseline | Final |
+|---|---|---|
+| Anomaly, events detected (red) | 12/16 | 14/16, all 4 official failures |
+| Anomaly, false red alarms | 2-7 | 10 (0.46 per week) |
+| RUL, MAE all rows | 8.6 h | 7.8 h |
+| RUL, MAE in the 72 h before failure | 41.4 h | 26.4 h |
+
+6 of 9 targets are met. The RUL model cannot warn 24-72 hours ahead: before F1-F3 the sensors look healthy until the
+failure starts. Show RUL as a stage (Failure / Critical / Warning / Normal) with its interval, not as an hour countdown.
+The ROI numbers in the report are based on assumed costs.
+
+These results were made with Python 3.14, scikit-learn 1.9.1, xgboost 3.4.1, pandas 3.1.1 and numpy 2.5.5
+(the exact versions are saved in `output/model/final/metadata.json`). Other versions give slightly different numbers.
+The files in `output/hybrid/` were made earlier with the versions in step 2 and were not regenerated:
+re-running `train_hybrid` with newer libraries changes its results a little (for example 3 false red alarms instead of 5).
 
 ---
 

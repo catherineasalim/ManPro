@@ -1,7 +1,7 @@
 """
 Preprocessing MetroPT-3: terjemahan DataPrep.ipynb ke Python, dengan perbaikan hasil review.
 
-Jalankan:  python preprocess_dataprep.py
+Jalankan:  python -m anomaly_detection.preprocessing.preprocess_dataprep
 Hasil:     output/dataprep/ (dua tabel 1 menit dan tiga file CSV pendukung)
 
 Alur
@@ -26,7 +26,7 @@ Tidak ikut diterjemahkan: grafik, Cohen's d, fold LOFO, dan baseline XGBoost, ka
 import numpy as np
 import pandas as pd
 
-from preprocess_iforest import CSV_PATH, EVENTS, FOLDS, MAINTENANCE_GAPS, OUTPUT_DIR
+from anomaly_detection.preprocessing.preprocess_iforest import CSV_PATH, EVENTS, FOLDS, MAINTENANCE_GAPS, OUTPUT_DIR
 
 OUT_DIR = OUTPUT_DIR / "dataprep"
 TABLE_TRAIN = OUT_DIR / "dataset_latih_1min.parquet"

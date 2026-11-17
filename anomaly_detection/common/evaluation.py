@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score
 
-from preprocess_iforest import EVENTS, FOLDS, MAINTENANCE_GAPS, MARGIN, neutral_mask
+from anomaly_detection.preprocessing.preprocess_iforest import EVENTS, FOLDS, MAINTENANCE_GAPS, MARGIN, neutral_mask
 
 TEST_START, TEST_END = FOLDS[0][0], FOLDS[-1][1]
 TEST_WEEKS = (TEST_END - TEST_START).total_seconds() / (7 * 86400)

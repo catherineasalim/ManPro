@@ -1,7 +1,7 @@
 """
 Model supervised: mempelajari perbedaan kondisi kejadian dan normal dari label.
 
-Jalankan:  python model_supervised.py
+Jalankan:  python -m anomaly_detection.anomali.model_supervised
 Pilihan:   --models hgb rf lr  --labels 4 16  --schemes walk block  --threshold 0.5  --pre-hours 0  --seed 42
 Hasil:     output/hasil_supervised.csv dan output/supervised_hgb_final.joblib
 
@@ -17,9 +17,9 @@ import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
-from evaluation import SUMMARY_COLUMNS, summarize
-from preprocess_iforest import FEATURES, FOLDS, N_JOBS, OUTPUT_DIR, SEED, load_tables, valid_rows
-from preprocess_supervised import prepare_final_supervised, prepare_fold_supervised, prepare_for_model
+from anomaly_detection.common.evaluation import SUMMARY_COLUMNS, summarize
+from anomaly_detection.preprocessing.preprocess_iforest import FEATURES, FOLDS, N_JOBS, OUTPUT_DIR, SEED, load_tables, valid_rows
+from anomaly_detection.preprocessing.preprocess_supervised import prepare_final_supervised, prepare_fold_supervised, prepare_for_model
 
 MODEL_NAMES = {"hgb": "HistGradientBoosting", "rf": "RandomForest", "lr": "LogisticRegression"}
 DEFAULT_THRESHOLD = 0.5

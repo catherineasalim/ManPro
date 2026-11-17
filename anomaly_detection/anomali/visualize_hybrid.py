@@ -1,7 +1,7 @@
 """
 Grafik hasil sistem hybrid, untuk laporan. Bukan dashboard.
 
-Jalankan:  python visualize_hybrid.py   (sesudah train_hybrid.py)
+Jalankan:  python -m anomaly_detection.anomali.visualize_hybrid   (sesudah train_hybrid.py)
 Hasil:     output/hybrid/grafik/*.png
 
 Tidak ada training di sini. Semua grafik dibaca dari file hasil walk-forward, dan judulnya dihitung dari data,
@@ -20,11 +20,11 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
 from matplotlib.ticker import MultipleLocator
 
-from evaluation import to_episodes
-from hybrid import GREEN, GREY, RED, YELLOW
-from preprocess_dataprep import OUT_DIR as DATAPREP_DIR
-from preprocess_iforest import EVENTS
-from train_hgb_dataprep import HYBRID_DIR
+from anomaly_detection.common.evaluation import to_episodes
+from anomaly_detection.common.hybrid import GREEN, GREY, RED, YELLOW
+from anomaly_detection.preprocessing.preprocess_dataprep import OUT_DIR as DATAPREP_DIR
+from anomaly_detection.preprocessing.preprocess_iforest import EVENTS
+from anomaly_detection.anomali.train_hgb_dataprep import HYBRID_DIR
 
 CHART_DIR = HYBRID_DIR / "grafik"
 DPI = 200

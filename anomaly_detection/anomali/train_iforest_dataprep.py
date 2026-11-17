@@ -1,7 +1,7 @@
 """
 Latih IsolationForest pada dataset hasil preprocess_dataprep.py.
 
-Jalankan:  python train_iforest_dataprep.py
+Jalankan:  python -m anomaly_detection.anomali.train_iforest_dataprep
 Pilihan:   --seed 42  --train-days 60
 Hasil:     output/dataprep/hasil_iforest.csv, alarm_iforest.csv, kejadian_iforest.csv, iforest_final.joblib
 
@@ -16,10 +16,10 @@ import argparse
 import joblib
 import pandas as pd
 
-from evaluation import SUMMARY_COLUMNS, evaluate, persist_alarm, summarize, to_episodes
-from model_iforest import anomaly_score, fit_iforest
-from preprocess_dataprep import FEATURES, OUT_DIR, load_tables
-from preprocess_iforest import EVENTS, FOLDS, SEED, TRAIN_DAYS, neutral_mask
+from anomaly_detection.common.evaluation import SUMMARY_COLUMNS, evaluate, persist_alarm, summarize, to_episodes
+from anomaly_detection.anomali.model_iforest import anomaly_score, fit_iforest
+from anomaly_detection.preprocessing.preprocess_dataprep import FEATURES, OUT_DIR, load_tables
+from anomaly_detection.preprocessing.preprocess_iforest import EVENTS, FOLDS, SEED, TRAIN_DAYS, neutral_mask
 
 
 def normal_rows(train_table):

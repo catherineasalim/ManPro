@@ -1,7 +1,7 @@
 """
 Model IsolationForest: mempelajari kondisi normal, lalu memberi alarm jika data berbeda dari itu.
 
-Jalankan:  python model_iforest.py
+Jalankan:  python -m anomaly_detection.anomali.model_iforest
 Pilihan:   --labels 4 16  --schemes walk block  --seed 42  --train-days 60
 Hasil:     output/hasil_iforest.csv dan output/iforest_final.joblib
 
@@ -16,8 +16,8 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 
-from evaluation import SUMMARY_COLUMNS, summarize
-from preprocess_iforest import (
+from anomaly_detection.common.evaluation import SUMMARY_COLUMNS, summarize
+from anomaly_detection.preprocessing.preprocess_iforest import (
     FEATURES,
     FOLDS,
     N_JOBS,

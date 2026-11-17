@@ -1,7 +1,7 @@
 """
 Preprocessing MetroPT-3 untuk IsolationForest.
 
-Jalankan:  python preprocess_iforest.py
+Jalankan:  python -m anomaly_detection.preprocessing.preprocess_iforest
 Hasil:     output/fitur_latih.parquet dan output/fitur_online.parquet
 
 Tahap A (sekali jalan, dipakai juga oleh preprocess_supervised.py)
@@ -33,7 +33,7 @@ N_JOBS = 4
 # Nilainya harus lebih kecil dari jumlah core agar diikuti joblib.
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(N_JOBS))
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent  # folder anomaly_detection/
 CSV_PATH = BASE_DIR.parent / "MetroPT3(AirCompressor).csv"
 OUTPUT_DIR = BASE_DIR / "output"
 TABLE_TRAIN = OUTPUT_DIR / "fitur_latih.parquet"

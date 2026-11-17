@@ -1,7 +1,7 @@
 """
 Preprocessing MetroPT-3 untuk metode supervised.
 
-Jalankan:  python preprocess_supervised.py
+Jalankan:  python -m anomaly_detection.preprocessing.preprocess_supervised
 
 Tahap A (langkah 1-5) sengaja diimpor dari preprocess_iforest.py, bukan ditulis ulang.
 Kedua metode harus memakai fitur dan baris uji yang persis sama agar perbandingannya adil.
@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-from preprocess_iforest import (
+from anomaly_detection.preprocessing.preprocess_iforest import (
     FEATURES,
     FOLDS,
     event_masks,

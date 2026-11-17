@@ -1,7 +1,7 @@
 """
 Sistem hybrid: IsolationForest untuk Kuning dan cold start, HistGradientBoosting untuk Merah.
 
-Jalankan:  python train_hybrid.py
+Jalankan:  python -m anomaly_detection.anomali.train_hybrid
 Pilihan:   --seeds 42 7  --labels 16 4  --train-days 60
 Hasil:     output/hybrid/
              hasil_hybrid.csv            ringkasan per metode, label, dan seed
@@ -21,14 +21,14 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from evaluation import evaluate, to_episodes
-from hybrid import STATUS_COLUMNS, combine_status, red_alarm, to_grid, warning_alarm
-from model_iforest import anomaly_score, fit_iforest
-from model_supervised import DEFAULT_THRESHOLD
-from preprocess_dataprep import FEATURES, load_tables
-from preprocess_iforest import EVENTS, FOLDS, SEED, TRAIN_DAYS, event_masks, select_events, self_clean
-from train_hgb_dataprep import HGB_FEATURES, HYBRID_DIR, fit_hgb, hgb_score
-from train_iforest_dataprep import prepare_fold
+from anomaly_detection.common.evaluation import evaluate, to_episodes
+from anomaly_detection.common.hybrid import STATUS_COLUMNS, combine_status, red_alarm, to_grid, warning_alarm
+from anomaly_detection.anomali.model_iforest import anomaly_score, fit_iforest
+from anomaly_detection.anomali.model_supervised import DEFAULT_THRESHOLD
+from anomaly_detection.preprocessing.preprocess_dataprep import FEATURES, load_tables
+from anomaly_detection.preprocessing.preprocess_iforest import EVENTS, FOLDS, SEED, TRAIN_DAYS, event_masks, select_events, self_clean
+from anomaly_detection.anomali.train_hgb_dataprep import HGB_FEATURES, HYBRID_DIR, fit_hgb, hgb_score
+from anomaly_detection.anomali.train_iforest_dataprep import prepare_fold
 
 MAY = pd.Timestamp("2020-05-01")
 AUG = pd.Timestamp("2020-08-01")

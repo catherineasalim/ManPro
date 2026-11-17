@@ -14,7 +14,7 @@ Semua aturan hanya melihat masa lalu, jadi status tidak berubah saat data baru m
 import numpy as np
 import pandas as pd
 
-from evaluation import persist_alarm
+from anomaly_detection.common.evaluation import persist_alarm
 
 GREY, GREEN, YELLOW, RED = "Abu-abu", "Hijau", "Kuning", "Merah"
 TRIGGER_NONE, TRIGGER_HGB, TRIGGER_IF_LONG, TRIGGER_IF = "-", "HGB", "IF bertahan 60 menit", "IF"

@@ -1,18 +1,19 @@
 # Keluaran sistem hybrid
 
-Panduan untuk tim dashboard. Semua file ada di `output/hybrid/`.
+Panduan untuk tim dashboard. Semua file ada di `anomaly_detection/output/hybrid/`.
 
 ## Cara membuat ulang
 
+Jalankan dari root repo (folder yang berisi README.md utama):
+
 ```
-cd anomaly_detection
-python preprocess_dataprep.py
-python train_hybrid.py
-python test_hybrid.py
-python visualize_hybrid.py   # Grafik untuk laporan, disimpan di output/hybrid/grafik/
+python -m anomaly_detection.preprocessing.preprocess_dataprep   # Hanya jika ingin membuat ulang dari CSV
+python -m anomaly_detection.anomali.train_hybrid
+python -m anomaly_detection.tests.test_hybrid
+python -m anomaly_detection.anomali.visualize_hybrid            # Grafik untuk laporan, disimpan di output/hybrid/grafik/
 ```
 
-Python akan membaca `preprocess_iforest.py`, `model_iforest.py`, `model_supervised.py`, `preprocess_supervised.py`, dan `evaluation.py`, jadi semuanya harus tetap satu folder.
+Peta file per folder ada di `anomaly_detection/README.md`.
 
 ## Arti status
 
@@ -93,8 +94,8 @@ Model untuk data sesudah Agustus 2020. Kinerjanya belum terukur langsung, karena
 
 ```python
 import joblib
-from hybrid import score_table
+from anomaly_detection.common.hybrid import score_table
 
-bundle = joblib.load("output/hybrid/hybrid_final.joblib")
+bundle = joblib.load("anomaly_detection/output/hybrid/hybrid_final.joblib")
 status = score_table(bundle, tabel_online_baru)  # Tabel harus berisi kolom hasil preprocess_dataprep.py.
 ```

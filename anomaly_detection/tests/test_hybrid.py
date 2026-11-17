@@ -1,14 +1,14 @@
 """
 Uji aturan status di hybrid.py dengan data buatan, tanpa dataset dan tanpa training.
 
-Jalankan:  python test_hybrid.py
+Jalankan:  python -m anomaly_detection.tests.test_hybrid
 """
 import unittest
 
 import numpy as np
 import pandas as pd
 
-from hybrid import GREEN, GREY, RED, TRIGGER_HGB, TRIGGER_IF, TRIGGER_IF_LONG, YELLOW, combine_status, escalated, score_table, to_grid
+from anomaly_detection.common.hybrid import GREEN, GREY, RED, TRIGGER_HGB, TRIGGER_IF, TRIGGER_IF_LONG, YELLOW, combine_status, escalated, score_table, to_grid
 
 START = pd.Timestamp("2020-06-01 00:00")
 

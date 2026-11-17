@@ -1,7 +1,7 @@
 """
 Latih HistGradientBoosting pada dataset hasil preprocess_dataprep.py.
 
-Jalankan:  python train_hgb_dataprep.py
+Jalankan:  python -m anomaly_detection.anomali.train_hgb_dataprep
 Pilihan:   --labels 16 4  --seed 42
 Hasil:     output/hybrid/hasil_hgb.csv
 
@@ -18,12 +18,12 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from evaluation import SUMMARY_COLUMNS, summarize
-from model_supervised import DEFAULT_THRESHOLD, build_model
-from preprocess_dataprep import load_tables
-from preprocess_iforest import FOLDS, OUTPUT_DIR, SEED, event_masks, select_events
-from preprocess_supervised import LABEL_COVERAGE
-from train_iforest_dataprep import test_rows
+from anomaly_detection.common.evaluation import SUMMARY_COLUMNS, summarize
+from anomaly_detection.anomali.model_supervised import DEFAULT_THRESHOLD, build_model
+from anomaly_detection.preprocessing.preprocess_dataprep import load_tables
+from anomaly_detection.preprocessing.preprocess_iforest import FOLDS, OUTPUT_DIR, SEED, event_masks, select_events
+from anomaly_detection.preprocessing.preprocess_supervised import LABEL_COVERAGE
+from anomaly_detection.anomali.train_iforest_dataprep import test_rows
 
 HYBRID_DIR = OUTPUT_DIR / "hybrid"
 HGB_FEATURES = ["duty_15", "duty_60", "load_run_min", "cycles_60", "oil_mean_15", "oil_trend_60", "curr_mean_60", "tp2_mean_60", "h1_mean_60"]

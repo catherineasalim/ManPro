@@ -13,12 +13,14 @@ pakai (Remaining Useful Life, RUL). Hasil utama, diukur dengan validasi walk-for
 - Sistem final mendeteksi **14/16 kejadian** dan **4/4 kegagalan resmi** dengan alarm Merah, dengan delay median
   11 menit. Alarm palsu Merah tercatat 10 kali dalam 22 minggu (0,46 per minggu).
 - Skor anomali sudah terkalibrasi (ECE 0,0030), sehingga bisa dibaca sebagai perkiraan peluang.
-- Model RUL final menurunkan MAE dari 10,3 menjadi 7,8 jam dan mengenali tahap Critical
-  dengan recall 0,78. Namun data tidak mendukung peringatan 24-72 jam sebelum kegagalan, karena tiga dari empat
-  kegagalan terjadi mendadak.
-- 6 dari 9 target metrik tercapai.
-- Simulasi ROI (berbasis asumsi biaya) menghasilkan NPV 3 tahun positif pada skenario Moderat dan Optimis serta negatif pada skenario Pesimis.
-  Skenario Moderat: NPV €34.966, ROI 84%, balik modal 14 bulan.
+- MAE semua baris RUL adalah 12,2 jam, tetapi MAE pra-failure
+  33,9 jam dibanding baseline sederhana RUL tetap 72 jam
+  (38,2 jam). Tidak ada kegagalan yang diperingatkan sebelumnya pada validasi walk-forward;
+  MAE semua baris didominasi menit sehat dan tidak membuktikan kemampuan prediksi dini.
+- 5 dari 9 target metrik tercapai.
+- Pada nilai dasar, ROI prediktif adalah 8.341,8% terhadap reaktif dan
+  1.892,8% terhadap preventif, berdasarkan biaya tahunan dalam UB.
+  ROI terhadap reaktif positif pada: Batas rendah, Dasar, Batas tinggi.
 - Insight terpenting: setiap kegagalan resmi didahului kejadian kecil dalam 2-7 hari, sehingga kejadian kecil layak
   dijadikan pemicu inspeksi.
 
@@ -88,7 +90,7 @@ kejadian. Alarm palsu adalah episode alarm yang tidak menyentuh kejadian mana pu
    label, IsolationForest menangani peringatan (aturan cold start).
 
 **RUL**
-1. XGBoost regresi, hiperparameter dipilih dengan validasi leave-one-segment-out.
+1. XGBoost regresi, hiperparameter dipilih dengan validasi expanding-window yang hanya memakai data masa lalu.
 2. Kalibrasi isotonic untuk menghapus bias prediksi.
 3. Saat model anomali mendeteksi pola kegagalan, RUL ditetapkan 0 (tahap Failure).
 4. Interval prediksi 80% dengan metode conformal.
@@ -104,7 +106,7 @@ Target ditetapkan setelah melihat hasil baseline, sebelum model final dijalankan
 | Anomali | Hybrid Merah: alarm palsu per minggu | ≤ 0,25 |
 | Anomali | Model terkalibrasi: Brier skor Mei-Agu | ≤ 0,0019 |
 | Anomali | Model terkalibrasi: ECE Mei-Agu | ≤ 0,05 |
-| RUL | MAE semua baris (jam) | ≤ 10,0 |
+| RUL | MAE sebelum failure (jam) | ≤ 12,0 |
 | RUL | Cakupan interval 80% | 0,7 - 0,9 |
 | RUL | Failure diperingatkan sebelum mulai (segmen 2-4) | ≥ 2 |
 | RUL | Alarm RUL palsu per bulan | ≤ 1,0 |
@@ -119,13 +121,13 @@ Target ditetapkan setelah melihat hasil baseline, sebelum model final dijalankan
 
 | Metode | Kejadian terdeteksi | Kegagalan resmi | Alarm palsu | Delay median (menit) | F1 per menit | PR-AUC | Brier |
 |---|---|---|---|---|---|---|---|
-| Baseline Random Forest | 12/16 | 3/4 | 2 | 8,5 | 0,984 | 0,991 | 0,003 |
+| Baseline Random Forest | 12/16 | 3/4 | 3 | 8,5 | 0,984 | 0,990 | 0,003 |
 | Baseline XGBoost | 12/16 | 3/4 | 7 | 7,5 | 0,973 | 0,991 | 0,002 |
-| Model final terkalibrasi | 12/16 | 3/4 | 9 | 7,5 | 0,965 | 0,987 | 0,003 |
+| Model final terkalibrasi | 12/16 | 3/4 | 9 | 7,5 | 0,965 | 0,986 | 0,003 |
 | Sistem hybrid versi awal, Merah | 14/16 | 4/4 | 5 | 10,5 | - | - | - |
-| Sistem hybrid versi awal, Kuning/Merah | 16/16 | 4/4 | 61 | 8,5 | - | - | - |
+| Sistem hybrid versi awal, Kuning/Merah | 16/16 | 4/4 | 59 | 8,5 | - | - | - |
 | Sistem hybrid final, Merah | 14/16 | 4/4 | 10 | 11,0 | - | - | - |
-| Sistem hybrid final, Kuning/Merah | 16/16 | 4/4 | 62 | 8,5 | - | - | - |
+| Sistem hybrid final, Kuning/Merah | 16/16 | 4/4 | 60 | 8,5 | - | - | - |
 
 Baseline dan model final tunggal hanya mendeteksi 12 kejadian, karena April belum memiliki label sehingga tidak ada
 model supervised. Sistem hybrid menutup celah ini dengan IsolationForest, sehingga F1 tetap terdeteksi.
@@ -140,7 +142,7 @@ Model yang terpilih tiap bulan:
 |---|---|---|---|
 | April | 0 | - | - |
 | Mei | 4 | XGBoost sedang | 0,25 |
-| Juni | 10 | Random Forest | 0,85 |
+| Juni | 10 | Random Forest | 0,65 |
 | Juli | 13 | XGBoost dangkal | 0,30 |
 | Agustus | 16 | Random Forest | 0,75 |
 
@@ -151,36 +153,36 @@ yang sebenarnya.
 
 ### 4.2 RUL
 
-| Model | MAE semua (jam) | MAE degradasi (jam) | MAE <= 24 jam | Skor NASA | F1 tahap | Recall Critical | Alarm RUL palsu |
-|---|---|---|---|---|---|---|---|
-| Baseline Random Forest | 8,64 | 43,80 | 59,48 | 350,65 | 0,33 | 0,00 | 6 |
-| Baseline XGBoost | 10,26 | 41,40 | 56,45 | 313,05 | 0,34 | 0,00 | 6 |
-| Model final | 7,76 | 26,41 | 28,31 | 125,30 | 0,55 | 0,78 | 0 |
+| Model | MAE semua (jam) | MAE pra-failure (jam) | MAE degradasi (jam) | MAE <= 24 jam | Skor NASA | F1 tahap | Recall Critical | Alarm RUL palsu |
+|---|---|---|---|---|---|---|---|---|
+| Baseline Random Forest | 8,70 | - | 44,10 | 59,93 | 358,07 | 0,33 | 0,00 | 6 |
+| Baseline XGBoost | 10,26 | - | 41,40 | 56,45 | 313,05 | 0,34 | 0,00 | 6 |
+| Model final | 12,21 | 33,86 | 24,75 | 27,70 | 101,03 | 0,55 | 0,78 | 0 |
 
-Per segmen uji (model final):
+Per segmen uji (model final; MAE pra-failure hanya menghitung label 0 < RUL < 72 jam):
 
-| Segmen uji | MAE semua | MAE degradasi | MAE degradasi tanpa override | F1 tahap | Recall Critical | Cakupan interval |
+| Segmen uji | MAE semua | MAE pra-failure | MAE degradasi tanpa override | F1 tahap | Recall Critical | Cakupan interval |
 |---|---|---|---|---|---|---|
-| 2 | 8,33 | 41,30 | 50,90 | 0,40 | 0,52 | 0,89 |
-| 3 | 14,93 | 20,84 | 50,79 | 0,60 | 0,87 | 0,73 |
-| 4 | 10,40 | 24,53 | 32,14 | 0,56 | 0,65 | 0,82 |
-| 5 | 3,90 | - | - | 0,33 | - | 0,97 |
+| 2 | 8,87 | 47,20 | 50,24 | 0,40 | 0,52 | 0,89 |
+| 3 | 15,23 | 36,34 | 49,98 | 0,60 | 0,87 | 0,64 |
+| 4 | 21,35 | 20,14 | 26,33 | 0,56 | 0,65 | 0,75 |
+| 5 | 7,23 | - | - | 0,33 | - | 0,99 |
 
 Model yang terpilih tiap segmen:
 
 | Segmen uji | Model terpilih | Ambang alarm (jam) | Validasi |
 |---|---|---|---|
-| 2 | XGBoost dangkal | 6,00 | 4 blok waktu di segmen 1 |
-| 3 | XGBoost dangkal | 6,00 | leave-one-segment-out |
-| 4 | XGBoost dalam | 6,00 | leave-one-segment-out |
-| 5 | XGBoost sedang | 6,00 | leave-one-segment-out |
+| 2 | XGBoost dangkal | 6,00 | expanding 4 blok waktu |
+| 3 | XGBoost dangkal | 6,00 | expanding per segmen |
+| 4 | XGBoost dangkal | 6,00 | expanding per segmen |
+| 5 | XGBoost dangkal | 6,00 | expanding per segmen |
 
 ![Prediksi RUL](grafik/03_rul_walkforward.png)
 
 Grafik di atas memperlihatkan keterbatasan utama: sebelum F2 dan F3, prediksi tetap di sekitar 70 jam sampai kegagalan
-terjadi. Penurunan MAE degradasi dari 45,9 menjadi 26,4 jam terutama berasal dari tahap
-Failure yang dikenali model anomali, bukan dari peramalan. Karena itu RUL sebaiknya ditampilkan sebagai tahap
-(Failure, Critical, Warning, Normal) beserta intervalnya, bukan sebagai hitung mundur jam.
+terjadi. Skor RUL perlu dibaca pada jendela pra-failure, bukan hanya dari MAE semua baris. Karena validasi walk-forward
+belum menghasilkan lead-time, tampilkan RUL sebagai perkiraan eksperimental beserta tahap dan interval, bukan sebagai
+janji hitung mundur atau rekomendasi penggantian otomatis.
 
 ### 4.3 Capaian target
 
@@ -191,15 +193,16 @@ Failure yang dikenali model anomali, bukan dari peramalan. Karena itu RUL sebaik
 | Anomali | Hybrid Merah: alarm palsu per minggu | ≤ 0,25 | 0,4580 | Tidak lulus |
 | Anomali | Model terkalibrasi: Brier skor Mei-Agu | ≤ 0,0019 | 0,0027 | Tidak lulus |
 | Anomali | Model terkalibrasi: ECE Mei-Agu | ≤ 0,05 | 0,0030 | Lulus |
-| RUL | MAE semua baris (jam) | ≤ 10,0 | 7,76 | Lulus |
-| RUL | Cakupan interval 80% | 0,7 - 0,9 | 0,8886 | Lulus |
+| RUL | MAE sebelum failure (jam) | ≤ 12,0 | 33,86 | Tidak lulus |
+| RUL | Cakupan interval 80% | 0,7 - 0,9 | 0,8682 | Lulus |
 | RUL | Failure diperingatkan sebelum mulai (segmen 2-4) | ≥ 2 | 0,0000 | Tidak lulus |
 | RUL | Alarm RUL palsu per bulan | ≤ 1,0 | 0,0000 | Lulus |
 
 Target yang belum tercapai:
-- **Alarm palsu Merah** 0,46 per minggu, di atas target 0,25. Penyebabnya dibahas di bagian 5.
-- **Cakupan interval RUL** 88,9%, sedikit di atas batas 90%. Interval terlalu lebar pada kondisi sehat
-  tetapi terlalu sempit menjelang kegagalan.
+- **Brier skor anomali** 0,0027, sedikit di atas target 0,0019.
+- **MAE pra-failure RUL** 33,9 jam, di atas target 12 jam. Cakupan interval keseluruhan
+  86,8% masih dalam target 70-90%, tetapi cakupan pra-failure hanya
+  25,0%, sehingga intervalnya belum dapat diandalkan saat degradasi.
 - **Peringatan RUL sebelum kegagalan** tidak tercapai. Bagian 8 menunjukkan bahwa sinyal 6-72 jam sebelumnya memang
   tidak ada pada F1-F3. Baseline XGBoost sempat memberi peringatan, tetapi dengan 6 alarm palsu.
 
@@ -213,8 +216,8 @@ Model terkalibrasi, Mei-Agustus 2020. Menit dalam margin 2 jam di sekitar kejadi
 
 | Kondisi sebenarnya | Prediksi kejadian | Prediksi normal |
 |---|---|---|
-| Sebenarnya kejadian | 5.677 | 110 |
-| Sebenarnya normal | 299 | 129.244 |
+| Sebenarnya kejadian | 5.678 | 109 |
+| Sebenarnya normal | 300 | 129.243 |
 
 ### 5.2 Alarm palsu (False Positive)
 
@@ -222,11 +225,11 @@ Daftar alarm palsu Merah, yaitu yang dikirim sebagai notifikasi ke teknisi:
 
 | Mulai | Durasi (menit) | Kejadian terdekat | Posisi | Jarak (jam) | Duty 60 | Berbeban (menit) | Suhu oli (°C) | Kategori |
 |---|---|---|---|---|---|---|---|---|
-| 06 Apr 2020 15:16 | 10 | E01 | sebelum | 140,40 | 0,26 | 0,00 | 66,36 | Sesudah gap data |
+| 06 Apr 2020 15:16 | 12 | E01 | sebelum | 140,40 | 0,26 | 0,00 | 66,36 | Sesudah gap data |
 | 10 May 2020 23:14 | 3 | E05 | sebelum | 62,70 | 1,00 | 27,00 | 63,93 | Beban tinggi tanpa label |
 | 17 May 2020 08:33 | 13 | E06 | sebelum | 20,20 | 0,34 | 0,00 | 70,07 | Lainnya |
 | 21 May 2020 18:02 | 19 | E08 | sesudah | 22,00 | 0,35 | 13,00 | 71,21 | Lainnya |
-| 22 Jun 2020 15:27 | 13 | E13_F3 | sesudah | 360,90 | 0,40 | 0,00 | 65,15 | Lainnya |
+| 22 Jun 2020 15:26 | 14 | E13_F3 | sesudah | 360,90 | 0,39 | 0,00 | 65,15 | Lainnya |
 | 08 Jul 2020 21:28 | 71 | E14 | sesudah | 2,50 | 0,34 | 0,00 | 74,04 | Dekat batas kejadian berlabel (<= 6 jam) |
 | 17 Jul 2020 01:21 | 2 | E16 | sebelum | 3,10 | 0,53 | 8,00 | 64,59 | Dekat batas kejadian berlabel (<= 6 jam) |
 | 17 Jul 2020 07:36 | 14 | E16 | sesudah | 2,10 | 0,30 | 11,00 | 71,91 | Dekat batas kejadian berlabel (<= 6 jam) |
@@ -240,14 +243,14 @@ Temuan:
 2. 3 dari 10 terjadi kurang dari 6 jam dari kejadian berlabel. Pola sensornya mirip kejadian di dekatnya,
    sehingga kemungkinan besar mesin belum pulih sepenuhnya atau label kejadian terlalu sempit.
 3. 1 alarm muncul sesaat setelah data sensor kembali dari gap, saat fitur rata-rata bergerak belum stabil.
-4. Alarm Kuning palsu lebih banyak (62 episode, 2,8 per minggu). Kuning hanya tampil di dashboard,
+4. Alarm Kuning palsu lebih banyak (60 episode, 2,7 per minggu). Kuning hanya tampil di dashboard,
    tidak dikirim sebagai notifikasi.
 
 ### 5.3 Kejadian terlewat (False Negative)
 
 | Kejadian | Kegagalan resmi | Durasi (menit) | Merah | Kuning/Merah | Delay Merah (menit) | Keterangan |
 |---|---|---|---|---|---|---|
-| E01 | Tidak | 700 | Ya | Ya | 73 | - |
+| E01 | Tidak | 700 | Ya | Ya | 72 | - |
 | E02_F1 | Ya | 1.530 | Ya | Ya | 91 | - |
 | E03 | Tidak | 40 | Tidak | Ya | - | April: model supervised belum ada, dan kejadian < 60 menit sehingga aturan cold start (IF 60 menit) tidak sempat menjadi Merah |
 | E04 | Tidak | 20 | Tidak | Ya | - | April: model supervised belum ada, dan kejadian < 60 menit sehingga aturan cold start (IF 60 menit) tidak sempat menjadi Merah |
@@ -278,44 +281,51 @@ Temuan:
 
 ### 6.1 Asumsi
 
-Dataset tidak memuat data biaya, sehingga semua angka biaya berikut adalah **asumsi** dan perlu diganti dengan data
-perusahaan. Kinerja deteksi diambil dari hasil walk-forward: recall kegagalan resmi 100%, recall kejadian
-kecil 83%, dan 0,46 alarm palsu Merah per minggu per unit.
+Perhitungan memakai **1 UB = biaya satu perbaikan terencana** sesuai definisi dokumen. Biaya dasar dan batas rendah/tinggi
+berikut mengikuti tabel asumsi biaya yang disepakati:
 
-| Parameter | Pesimis | Moderat | Optimis |
+| Parameter | Batas rendah | Dasar | Batas tinggi |
 |---|---|---|---|
-| Jumlah unit | 10 | 10 | 10 |
-| Kegagalan besar per unit per tahun | 0,5 | 1 | 2 |
-| Kejadian kecil per unit per tahun | 3 | 6 | 10 |
-| Biaya per kegagalan resmi | €8.000 | €15.000 | €25.000 |
-| Biaya per kejadian kecil | €400 | €800 | €1.200 |
-| Porsi biaya terhindar | 15% | 30% | 50% |
-| Biaya per alarm palsu | €150 | €100 | €75 |
-| Biaya implementasi (capex) | €40.000 | €30.000 | €25.000 |
-| Biaya operasional per tahun | €10.000 | €8.000 | €6.000 |
+| Kegagalan besar per unit per tahun | 6,86 | 6,86 | 6,86 |
+| Downtime per kegagalan (jam) | 21,87 | 21,87 | 21,87 |
+| Biaya downtime per jam (UB/jam) | 0,20 UB | 0,50 UB | 1,50 UB |
+| Biaya perbaikan darurat (UB) | 2,00 UB | 3,00 UB | 5,00 UB |
+| Biaya perbaikan terencana prediktif (UB) | 0,80 UB | 1,00 UB | 1,50 UB |
+| Biaya inspeksi per alarm palsu (UB) | 0,05 UB | 0,10 UB | 0,20 UB |
+| Interval penggantian terjadwal (bulan) | 12 | 6 | 3 |
+| Biaya penggantian terjadwal (UB/penggantian) | 1,00 UB | 1,20 UB | 2,00 UB |
+| Kegagalan yang lolos di preventif | 10% | 30% | 60% |
+| Biaya sistem prediktif (UB/tahun) | 0,50 UB | 1,00 UB | 3,00 UB |
 
-Frekuensi kejadian sengaja dibuat lebih rendah dari data 2020. Pada periode itu unit ini mengalami 4 kegagalan resmi
-dalam 7 bulan (setara 6,9 per tahun), angka yang terlalu tinggi untuk mewakili armada.
-"Porsi biaya terhindar" adalah bagian biaya kerusakan yang dapat dicegah karena masalah terdeteksi dini, misalnya
-kereta ditarik sebelum kompresor rusak parah.
+Dokumen tidak menetapkan frekuensi kegagalan dan durasi downtime. Untuk ilustrasi, frekuensi dasar diambil dari 4
+kegagalan resmi selama 7 bulan pada satu unit (6,86 kegagalan/tahun).
+Durasi downtime diproksikan dengan rata-rata lama interval label 4 kegagalan (21,87 jam),
+bukan catatan downtime operasional terverifikasi. Ganti kedua nilai ini dengan data operasional bila tersedia.
 
-Perhitungan per tahun:
-- Penghematan = unit × porsi terhindar × (kegagalan × recall × biaya kegagalan + kejadian kecil × recall × biaya kejadian kecil)
-- Biaya alarm palsu = unit × alarm palsu per minggu × 52 × biaya per alarm palsu
-- ROI 3 tahun = (3 × manfaat bersih - capex - 3 × opex) / (capex + 3 × opex), NPV dengan diskonto 8%
+Metrik deteksi diambil dari validasi walk-forward sistem hybrid final, bukan LOFO: recall kegagalan resmi 100%
+dan 0,82 episode alarm Merah palsu per minggu per unit. Walk-forward dipakai
+untuk menghindari pelatihan dengan data masa depan; ini merupakan perbedaan metode dari LOFO yang disebut dokumen.
+Kejadian kecil yang tidak cocok dengan kegagalan resmi dihitung konservatif sebagai FP.
+
+Perhitungan per tahun mengikuti rumus ruang lingkup:
+- Reaktif = N kegagalan × (jam downtime × biaya downtime/jam + perbaikan darurat).
+- Preventif = jumlah penggantian terjadwal × biaya penggantian per penggantian + biaya kegagalan yang lolos.
+- Prediktif = TP × perbaikan terencana + FN × biaya kegagalan reaktif + FP × inspeksi + biaya operasi sistem.
+- TP/FN dihitung dari frekuensi kegagalan tahunan × recall; FP dari episode alarm Merah tanpa kegagalan resmi yang cocok
+  (alarm pada masa maintenance dikecualikan), dianualisasi per unit.
+- Penghematan prediktif terhadap strategi = biaya strategi pembanding − biaya prediktif.
+- ROI tahunan terhadap tiap pembanding = penghematan tahunan ÷ biaya sistem tahunan × 100%.
+- Tidak ditampilkan NPV, balik modal, atau capex: rumus tersebut tidak termasuk dalam asumsi ROI pada dokumen.
 
 ### 6.2 Hasil
 
-| Skenario | Penghematan/tahun | Biaya alarm palsu/tahun | Arus kas bersih/tahun | NPV 3 tahun | ROI 3 tahun | Balik modal |
-|---|---|---|---|---|---|---|
-| Pesimis | €7.500 | €35.686 | -€38.186 | -€138.410 | -221% | tidak balik modal |
-| Moderat | €57.000 | €23.791 | €25.209 | €34.966 | 84% | 14,3 bulan |
-| Optimis | €300.000 | €17.843 | €276.157 | €686.683 | 1.869% | 1,1 bulan |
+| Skenario | TP/tahun | FN/tahun | FP/tahun | Biaya reaktif/tahun (UB) | Biaya preventif/tahun (UB) | Biaya prediktif/tahun (UB) | Penghematan vs reaktif/tahun (UB) | ROI vs reaktif | Penghematan vs preventif/tahun (UB) | ROI vs preventif |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Batas rendah | 6,9 | 0,0 | 42,8 | 43,71 UB | 5,37 UB | 8,13 UB | 35,58 UB | 7.116,3% | -2,76 UB | -551,2% |
+| Dasar | 6,9 | 0,0 | 42,8 | 95,56 UB | 31,07 UB | 12,14 UB | 83,42 UB | 8.341,8% | 18,93 UB | 1.892,8% |
+| Batas tinggi | 6,9 | 0,0 | 42,8 | 259,24 UB | 163,55 UB | 21,85 UB | 237,39 UB | 7.913,1% | 141,70 UB | 4.723,2% |
 
 ![Simulasi ROI](grafik/05_roi_skenario.png)
-
-Pada skenario Pesimis, biaya alarm palsu lebih besar dari penghematan, sehingga investasi tidak kembali. Pada skenario
-Moderat, investasi kembali dalam sekitar 14 bulan.
 
 ---
 
@@ -323,76 +333,70 @@ Moderat, investasi kembali dalam sekitar 14 bulan.
 
 ### 7.1 Sensitivitas parameter
 
-Setiap parameter skenario Moderat digeser ±30%, parameter lain tetap:
+Setiap parameter pada nilai dasar digeser ±30%, parameter lain tetap. ROI sensitivitas mengacu pada pembanding reaktif:
 
 ![Tornado sensitivitas](grafik/06_tornado_sensitivitas.png)
 
 | Parameter | ROI jika -30% (%) | ROI jika +30% (%) | Rentang (poin %) |
 |---|---|---|---|
-| Porsi biaya terhindar | -10,5 | 179,5 | 190,0 |
-| Kegagalan besar per unit per tahun | 9,5 | 159,5 | 150,0 |
-| Biaya per kegagalan resmi | 9,5 | 159,5 | 150,0 |
-| Jumlah unit | 29,1 | 139,8 | 110,7 |
-| Alarm palsu per minggu | 124,1 | 44,8 | 79,3 |
-| Biaya per alarm palsu | 124,1 | 44,8 | 79,3 |
-| Recall kegagalan resmi | 9,5 | 84,5 | 75,0 |
-| Biaya implementasi (capex) | 121,4 | 58,1 | 63,3 |
-| Biaya operasional per tahun | 112,9 | 62,8 | 50,1 |
-| Kejadian kecil per unit per tahun | 64,5 | 104,5 | 40,0 |
-| Biaya per kejadian kecil | 64,5 | 104,5 | 40,0 |
-| Recall kejadian kecil | 64,5 | 97,8 | 33,3 |
+| Biaya sistem prediktif (UB/tahun) | 11.959,7 | 6.393,7 | 5.566,0 |
+| Kegagalan besar per unit per tahun | 5.680,8 | 11.002,8 | 5.322,0 |
+| Downtime per kegagalan (jam) | 6.092,2 | 10.591,3 | 4.499,1 |
+| Biaya downtime per jam (UB/jam) | 6.092,2 | 10.591,3 | 4.499,1 |
+| Recall kegagalan resmi | 5.680,8 | 8.341,8 | 2.661,0 |
+| Biaya perbaikan darurat (UB) | 7.724,6 | 8.958,9 | 1.234,3 |
+| Biaya perbaikan terencana prediktif (UB) | 8.547,5 | 8.136,1 | 411,4 |
+| Biaya inspeksi per alarm palsu (UB) | 8.470,2 | 8.213,3 | 256,9 |
+| Alarm Merah tanpa kegagalan resmi per minggu | 8.470,2 | 8.213,3 | 256,9 |
 
 ### 7.2 Titik impas
 
-Nilai parameter yang membuat ROI 3 tahun tepat nol, parameter lain tetap Moderat:
+Nilai parameter yang membuat ROI terhadap reaktif tepat nol, parameter lain tetap pada nilai dasar:
 
-| Parameter | Nilai Moderat | Titik impas | Syarat ROI positif |
+| Parameter | Nilai dasar | Titik impas | Syarat ROI positif |
 |---|---|---|---|
-| Porsi biaya terhindar | 0,30 | 0,22 | minimal |
-| Biaya per kegagalan resmi | 15.000,00 | 9.930,28 | minimal |
-| Kegagalan besar per unit per tahun | 1,00 | 0,66 | minimal |
-| Jumlah unit | 10,00 | 5,42 | minimal |
-| Alarm palsu per minggu | 0,46 | 0,75 | maksimal |
-| Biaya per alarm palsu | 100,00 | 163,93 | maksimal |
+| Recall kegagalan resmi | 1,00 | 0,06 | minimal |
+| Alarm Merah tanpa kegagalan resmi per minggu | 0,82 | 16,86 | maksimal |
+| Kegagalan besar per unit per tahun | 6,86 | 0,41 | minimal |
 
 ### 7.3 Sensitivitas ambang
 
 ![Sensitivitas ambang](grafik/07_sensitivitas_ambang.png)
 
-| Ambang | Kejadian Mei-Agu (dari 12) | Alarm palsu | Delay median (menit) | Manfaat bersih/tahun (Moderat) |
+| Ambang | Kejadian Mei-Agu (dari 12) | Alarm palsu | Delay median (menit) | Penghematan vs reaktif/tahun (dasar, UB) |
 |---|---|---|---|---|
-| 0,10 | 12 | 9 | 7,50 | €32.618 |
-| 0,15 | 12 | 9 | 7,50 | €32.618 |
-| 0,20 | 12 | 9 | 7,50 | €32.618 |
-| 0,25 | 12 | 9 | 7,50 | €32.618 |
-| 0,30 | 12 | 9 | 7,50 | €32.618 |
-| 0,35 | 12 | 7 | 7,50 | €38.570 |
-| 0,40 | 12 | 7 | 7,50 | €38.570 |
-| 0,45 | 12 | 5 | 10,00 | €44.521 |
-| 0,50 | 12 | 5 | 10,00 | €44.521 |
-| 0,55 | 11 | 4 | 13,00 | €45.897 |
-| 0,60 | 11 | 4 | 13,00 | €45.897 |
-| 0,65 | 11 | 4 | 13,00 | €45.897 |
-| 0,70 | 11 | 3 | 14,00 | €48.873 |
-| 0,75 | 11 | 1 | 14,00 | €54.824 |
-| 0,80 | 11 | 1 | 14,00 | €54.824 |
-| 0,85 | 11 | 1 | 14,00 | €54.824 |
-| 0,90 | 10 | 1 | 14,50 | €53.224 |
-| 0,95 | 10 | 1 | 14,50 | €53.224 |
+| 0,10 | 12 | 9 | 7,50 | 81,75 UB |
+| 0,15 | 12 | 9 | 7,50 | 81,75 UB |
+| 0,20 | 12 | 9 | 7,50 | 81,75 UB |
+| 0,25 | 12 | 9 | 7,50 | 81,75 UB |
+| 0,30 | 12 | 9 | 7,50 | 81,75 UB |
+| 0,35 | 12 | 7 | 7,50 | 82,34 UB |
+| 0,40 | 12 | 7 | 7,50 | 82,34 UB |
+| 0,45 | 12 | 5 | 10,00 | 82,94 UB |
+| 0,50 | 12 | 5 | 10,00 | 82,94 UB |
+| 0,55 | 11 | 4 | 13,00 | 83,24 UB |
+| 0,60 | 11 | 4 | 13,00 | 83,24 UB |
+| 0,65 | 11 | 4 | 13,00 | 83,24 UB |
+| 0,70 | 11 | 3 | 14,00 | 83,53 UB |
+| 0,75 | 11 | 1 | 14,00 | 84,13 UB |
+| 0,80 | 11 | 1 | 14,00 | 84,13 UB |
+| 0,85 | 11 | 1 | 14,00 | 84,13 UB |
+| 0,90 | 10 | 1 | 14,50 | 84,13 UB |
+| 0,95 | 10 | 1 | 14,50 | 84,13 UB |
 
 Kurva ini dihitung pada data uji, sehingga hanya menggambarkan trade-off dan tidak dipakai untuk memilih ambang.
 
 ### 7.4 Interpretasi
 
-1. ROI paling dipengaruhi oleh **porsi biaya terhindar**, **kegagalan besar per unit per tahun**, dan
-   **biaya per kegagalan resmi**. Ketiganya asumsi bisnis, sehingga validasi data biaya lebih mendesak
+1. ROI paling dipengaruhi oleh **biaya sistem prediktif (ub/tahun)**, **kegagalan besar per unit per tahun**, dan
+   **downtime per kegagalan (jam)**. Ketiganya asumsi bisnis, sehingga validasi data biaya lebih mendesak
    daripada peningkatan model.
-2. Pada asumsi Moderat, ROI tetap positif selama alarm palsu Merah di bawah 0,75 per minggu per unit
-   (saat ini 0,46).
+2. Pada nilai dasar, ROI terhadap reaktif tetap positif selama alarm Merah tanpa kegagalan resmi di bawah 16,86 per minggu per unit
+   (saat ini 0,82).
 3. Ambang 0,75-0,90 memberi alarm palsu paling sedikit tanpa kehilangan kejadian. Ambang yang dipilih model berada
    di kisaran 0,30-0,85, sehingga ada ruang perbaikan jika data latih bertambah.
-4. Karena recall kegagalan resmi sudah 100%, peningkatan terbesar akan datang dari **deteksi yang lebih awal**, yang
-   memperbesar porsi biaya terhindar.
+4. Karena recall kegagalan resmi sudah 100% pada sampel kecil ini, model belum membuktikan lead-time yang memberi
+   penghematan. ROI tetap simulasi bersyarat, bukan bukti kelayakan investasi.
 
 ---
 
@@ -463,31 +467,31 @@ Model anomali:
 
 | Fitur | Model anomali | Model RUL |
 |---|---|---|
-| tp2_mean_15 | 0,140 | 0,006 |
-| charge_slope_60 | 0,107 | 0,002 |
+| tp2_mean_15 | 0,140 | 0,002 |
+| charge_slope_60 | 0,107 | 0,001 |
 | h1_mean_15 | 0,087 | 0,000 |
 | tower_sw_15 | 0,079 | 0,000 |
-| load_run_min | 0,076 | 0,009 |
-| duty_15 | 0,075 | 0,001 |
+| load_run_min | 0,076 | 0,020 |
+| duty_15 | 0,075 | 0,000 |
 | tp2_mean_60 | 0,068 | 0,002 |
-| h1_mean_60 | 0,048 | 0,015 |
+| h1_mean_60 | 0,048 | 0,009 |
 
 Model RUL:
 
 | Fitur | Model anomali | Model RUL |
 |---|---|---|
-| oil_mean_15 | 0,002 | 0,353 |
-| discharge_slope_60 | 0,000 | 0,116 |
-| curr_mean_60 | 0,032 | 0,102 |
-| cooling_deficit | 0,001 | 0,034 |
-| oil_mean_60 | 0,005 | 0,034 |
-| tp3_min_360 | 0,000 | 0,030 |
-| discharge_slope_15 | 0,001 | 0,028 |
-| duty_1440 | 0,001 | 0,027 |
+| oil_mean_15 | 0,002 | 0,342 |
+| discharge_slope_60 | 0,000 | 0,213 |
+| oil_mean_60 | 0,005 | 0,060 |
+| curr_mean_60 | 0,032 | 0,045 |
+| discharge_slope_15 | 0,001 | 0,024 |
+| h1_mean_360 | 0,001 | 0,024 |
+| charge_slope_360 | 0,024 | 0,022 |
+| duty_60 | 0,038 | 0,021 |
 
 - Model anomali terutama memakai tp2_mean_15, charge_slope_60, h1_mean_15, tower_sw_15: tekanan, laju pengisian tekanan, dan lama kompresor
   berbeban. Saat terjadi kebocoran, tekanan turun dan kompresor butuh waktu lebih lama untuk mengisi.
-- Model RUL terutama memakai oil_mean_15, discharge_slope_60, curr_mean_60. Suhu oli dipengaruhi suhu lingkungan dan musim, sehingga model RUL
+- Model RUL terutama memakai oil_mean_15, discharge_slope_60, oil_mean_60. Suhu oli dipengaruhi suhu lingkungan dan musim, sehingga model RUL
   perlu dilatih ulang secara berkala.
 
 ---
@@ -497,10 +501,9 @@ Model RUL:
 ### 9.1 Kesimpulan
 
 1. Sistem hybrid final mendeteksi 14/16 kejadian dan semua kegagalan resmi, dengan skor yang terkalibrasi.
-2. Model RUL berguna untuk menilai tahap kondisi mesin, tetapi belum mampu memberi peringatan 24-72 jam sebelumnya,
-   karena sebagian besar kegagalan terjadi mendadak.
-3. Dengan asumsi biaya Moderat, sistem ini layak secara finansial. Kelayakannya paling bergantung pada porsi biaya
-   yang benar-benar dapat dihindari dan frekuensi kegagalan.
+2. RUL belum menunjukkan lead-time pada walk-forward dan belum layak dipakai sendiri untuk menjadwalkan penggantian.
+3. ROI tiga strategi hanya simulasi berbasis asumsi, dan sensitivitasnya bergantung pada frekuensi kegagalan serta
+   biaya komponen, downtime, inspeksi, dan sistem.
 4. Kejadian kecil adalah tanda peringatan terkuat menjelang kegagalan besar.
 
 ### 9.2 Rekomendasi

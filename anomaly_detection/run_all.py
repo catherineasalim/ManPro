@@ -14,7 +14,7 @@ import subprocess
 import sys
 import time
 
-TESTS = ["anomaly_detection.tests.test_hybrid", "anomaly_detection.tests.test_model"]
+TESTS = ["anomaly_detection.tests.test_hybrid", "anomaly_detection.tests.test_model", "anomaly_detection.tests.test_roi"]
 PREPROCESSING = ["anomaly_detection.preprocessing.preprocess_dataprep"]
 HYBRID = ["anomaly_detection.anomali.train_hybrid", "anomaly_detection.anomali.visualize_hybrid"]
 MODEL = [

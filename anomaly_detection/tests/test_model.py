@@ -10,7 +10,7 @@ import pandas as pd
 
 from anomaly_detection.common.model_utils import event_level, nasa_score, rul_alert_eval, rul_metrics, rul_stage
 from anomaly_detection.preprocessing.preprocess_iforest import EVENTS
-from anomaly_detection.rul_final.train_final_calibrated import apply_conformal, event_groups, fit_conformal
+from anomaly_detection.rul_final.train_final_calibrated import apply_conformal, event_groups, fit_conformal, inner_splits
 
 
 def minutes(start, end):
@@ -52,6 +52,10 @@ class RulTest(unittest.TestCase):
         self.assertEqual(m["mae_semua"], 0)
         self.assertEqual(m["akurasi_stage"], 1)
 
+    def test_pre_failure_mae_excludes_censored_and_failure_rows(self):
+        metrics = rul_metrics([72, 50, 10, 0], [0, 60, 8, 50])
+        self.assertEqual(metrics["mae_pra_failure"], 6)
+
     def test_alert_lead_time(self):
         index = minutes("2020-07-12", "2020-07-15 14:30")  # Segmen menuju F4 (15 Jul 14:30).
         rows = pd.DataFrame(index=index)
@@ -61,6 +65,37 @@ class RulTest(unittest.TestCase):
         self.assertTrue(r["terdeteksi_sebelum_failure"])
         self.assertAlmostEqual(r["lead_time_jam"], 12, delta=0.5)
         self.assertEqual(r["alarm_palsu"], 0)
+
+    def test_inner_rul_splits_only_use_past_segments(self):
+        index = pd.date_range("2020-01-01", periods=9, freq="1min")
+        table = pd.DataFrame(
+            {
+                "data_ok": True,
+                "in_grace": False,
+                "segment": np.repeat([1, 2, 3], 3),
+                "RUL_Hours": 60.0,
+            },
+            index=index,
+        )
+        splits = list(inner_splits(table, [1, 2, 3]))
+        self.assertEqual(len(splits), 2)
+        for train, valid in splits:
+            self.assertLess(train.index.max(), valid.index.min())
+        self.assertEqual(set(splits[0][0]["segment"]), {1})
+        self.assertEqual(set(splits[0][1]["segment"]), {2})
+        self.assertEqual(set(splits[1][0]["segment"]), {1, 2})
+        self.assertEqual(set(splits[1][1]["segment"]), {3})
+
+    def test_single_segment_rul_splits_are_expanding_in_time(self):
+        index = pd.date_range("2020-01-01", periods=8, freq="1min")
+        table = pd.DataFrame(
+            {"data_ok": True, "in_grace": False, "segment": 1, "RUL_Hours": 60.0},
+            index=index,
+        )
+        splits = list(inner_splits(table, [1], n_blocks=4))
+        self.assertEqual(len(splits), 3)
+        for train, valid in splits:
+            self.assertLess(train.index.max(), valid.index.min())
 
 
 class CalibrationTest(unittest.TestCase):

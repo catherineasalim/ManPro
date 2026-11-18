@@ -1,5 +1,5 @@
 {
-  "dibuat": "2026-11-18T08:02:56",
+  "dibuat": "2026-11-18T19:45:06",
   "data_latih": [
     "2020-02-01 00:00:00",
     "2020-09-01 03:59:00"
@@ -122,10 +122,10 @@
         "f1_kejadian": 0.672,
         "delay_median_menit": 7.5,
         "meleset": "E01,E02_F1,E03,E04",
-        "precision_baris": 0.95,
-        "recall_baris": 0.981,
+        "precision_baris": 0.9498,
+        "recall_baris": 0.9812,
         "f1_baris": 0.9652,
-        "pr_auc": 0.9869,
+        "pr_auc": 0.9861,
         "brier": 0.0027,
         "ece": 0.003
       },
@@ -151,11 +151,11 @@
         "metode": "Hybrid lama Kuning atau Merah",
         "kejadian": "16/16",
         "resmi": "4/4",
-        "alarm_palsu": 61,
-        "palsu_per_minggu": 2.791,
-        "precision_kejadian": 0.237,
+        "alarm_palsu": 59,
+        "palsu_per_minggu": 2.699,
+        "precision_kejadian": 0.234,
         "recall_kejadian": 1.0,
-        "f1_kejadian": 0.384,
+        "f1_kejadian": 0.379,
         "delay_median_menit": 8.5,
         "meleset": "",
         "precision_baris": NaN,
@@ -187,11 +187,11 @@
         "metode": "Hybrid final Kuning atau Merah",
         "kejadian": "16/16",
         "resmi": "4/4",
-        "alarm_palsu": 62,
-        "palsu_per_minggu": 2.837,
-        "precision_kejadian": 0.235,
+        "alarm_palsu": 60,
+        "palsu_per_minggu": 2.745,
+        "precision_kejadian": 0.231,
         "recall_kejadian": 1.0,
-        "f1_kejadian": 0.38,
+        "f1_kejadian": 0.375,
         "delay_median_menit": 8.5,
         "meleset": "",
         "precision_baris": NaN,
@@ -203,17 +203,18 @@
       }
     ],
     "rul": {
-      "mae_semua": 7.7614,
+      "mae_semua": 7.7613,
       "rmse_semua": 15.3025,
-      "mae_degradasi": 26.4052,
-      "rmse_degradasi": 35.3162,
-      "mae_kritis_24j": 28.3088,
-      "nasa_skor_degradasi": 125.3011,
+      "mae_degradasi": 26.3997,
+      "rmse_degradasi": 35.3107,
+      "mae_kritis_24j": 28.2991,
+      "nasa_skor_degradasi": 125.2137,
       "akurasi_stage": 0.9576,
       "f1_makro_stage": 0.5514,
-      "recall_critical": 0.7811,
+      "recall_critical": 0.7813,
       "n_baris": 143448,
       "n_degradasi": 12650,
+      "mae_pra_failure": 36.1382,
       "mae_semua_tanpa_override": 8.3344,
       "mae_degradasi_tanpa_override": 45.9364,
       "f1_makro_stage_tanpa_override": 0.3247,
@@ -222,7 +223,8 @@
       "failure_terdeteksi": 0,
       "lead_time_median_jam": NaN,
       "alarm_rul_palsu_total": 0,
-      "alarm_rul_palsu_per_bulan": 0.0
+      "alarm_rul_palsu_per_bulan": 0.0,
+      "cakupan_pra_failure": 0.2711
     },
     "target": [
       {
@@ -262,10 +264,10 @@
       },
       {
         "area": "RUL",
-        "metrik": "MAE semua baris (jam)",
-        "target": "<= 10.0",
-        "hasil": 7.7614,
-        "status": "LULUS"
+        "metrik": "MAE sebelum failure (jam)",
+        "target": "<= 12.0",
+        "hasil": 36.1382,
+        "status": "TIDAK LULUS"
       },
       {
         "area": "RUL",
@@ -291,7 +293,7 @@
     ]
   },
   "versi": {
-    "python": "3.14.2",
+    "python": "3.13.7",
     "scikit-learn": "1.9.1",
     "xgboost": "3.4.1",
     "pandas": "3.1.1",

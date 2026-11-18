@@ -34,6 +34,9 @@ Notifikasi hanya untuk Merah. Kuning cukup tampil di dashboard dan log, karena a
 1. **Replay Februari-Agustus 2020 harus memakai `status_walkforward.parquet`, bukan `hybrid_final.joblib`.** Model akhir sudah melihat bulan-bulan itu, sehingga Merah terlihat 16/16 tanpa alarm palsu. Hasil jujurnya 14/16 dengan 5 alarm palsu.
 2. **`hgb_score` bukan peluang kegagalan.** Tampilkan sebagai "skor keyakinan model". `class_weight="balanced"` menggeser nilainya, dan 16 kejadian terlalu sedikit untuk kalibrasi.
 3. **Abu-abu tidak boleh ditampilkan sebagai Hijau.** Sekitar 23,5% menit April-Agustus berstatus Abu-abu.
+4. **Jangan memilih aturan sederhana dari Grafik 01 sebagai model final.** Ambang aturan yang terlihat unggul (16/16,
+   2 alarm palsu) dipilih setelah melihat kejadian uji yang sama, sehingga hasilnya optimistis. Bekukan ambang di data
+   latih/validasi dan bandingkan lagi pada periode waktu yang benar-benar belum pernah dilihat.
 
 ## `status_walkforward.parquet`
 

@@ -39,6 +39,7 @@ Target metrik ditulis di TARGETS sebelum model final dijalankan. Hasilnya dilapo
 """
 import argparse
 import platform
+from pyexpat import model
 import time
 
 import joblib
@@ -112,7 +113,7 @@ TARGETS = [
     ("Anomali", "Hybrid Merah: alarm palsu per minggu", "<=", 0.25, "palsu_per_minggu"),
     ("Anomali", "Model terkalibrasi: Brier skor Mei-Agu", "<=", None, "brier"),  # Pembanding: baseline XGBoost.
     ("Anomali", "Model terkalibrasi: ECE Mei-Agu", "<=", 0.05, "ece"),
-    ("RUL", "MAE semua baris (jam)", "<=", 10.0, "mae_semua"),
+    ("RUL", "MAE sebelum failure (jam)", "<=", 12.0, "mae_pra"),
     ("RUL", "Cakupan interval 80%", "antara", (0.70, 0.90), "cakupan"),
     ("RUL", "Failure diperingatkan sebelum mulai (segmen 2-4)", ">=", 2, "terdeteksi"),
     ("RUL", "Alarm RUL palsu per bulan", "<=", 1.0, "palsu_per_bulan"),
@@ -130,7 +131,11 @@ def fit_model(kind, params, X, y, seed):
     params = dict(params)
     if kind == "xgb":
         params["scale_pos_weight"] = float((y == 0).sum() / max((y == 1).sum(), 1))
-    return make_classifier(kind, seed, **params).fit(X, y), imputer
+    model = make_classifier(kind, seed, **params)
+    ms = model.get_params().get("max_samples")
+    if ms is not None and ms > len(X):
+        model.set_params(max_samples=None)
+    return model.fit(X, y), imputer
 
 
 def raw_proba(model, imputer, X):
@@ -546,6 +551,9 @@ def main():
     rul_overall["alarm_rul_palsu_per_bulan"] = round(rul_overall["alarm_rul_palsu_total"] / rul_segments["bulan_uji"].sum(), 3)
 
     final_red = anomaly.set_index("metode").loc["Hybrid final Merah"]
+    inside_all = (true >= rul_preds["rul_bawah"]) & (true <= rul_preds["rul_atas"])
+    pre = (true > 0) & (true < RUL_CAP)
+    rul_overall["cakupan_pra_failure"] = round(float(np.mean(inside_all[pre])), 4)
     values = {
         "kejadian": int(final_red["kejadian"].split("/")[0]),
         "resmi": int(final_red["resmi"].split("/")[0]),
@@ -553,9 +561,10 @@ def main():
         "brier": float(cal_metrics["brier"]),
         "ece": float(ece_cal),
         "mae_semua": float(rul_overall["mae_semua"]),
-        "cakupan": float(rul_overall["cakupan_interval"]),
+        "cakupan": float(rul_overall["cakupan_pra_failure"]),
         "terdeteksi": rul_overall["failure_terdeteksi"],
         "palsu_per_bulan": float(rul_overall["alarm_rul_palsu_per_bulan"]),
+        "mae_pra": float(rul_overall["mae_pra_failure"]),
     }
     targets = check_targets(values, brier_baseline)
 

@@ -312,6 +312,7 @@ def rul_alert_eval(pred, segment_rows, alert_hours, persist=True):
 def rul_metrics(true, pred):
     true, pred = np.asarray(true, float), np.asarray(pred, float)
     degr = true < RUL_CAP
+    pre = (true > 0) & (true < RUL_CAP)
     crit = true <= STAGE_EDGES[1]
     true_stage, pred_stage = rul_stage(true), rul_stage(pred)
     out = {
@@ -326,6 +327,7 @@ def rul_metrics(true, pred):
         "recall_critical": recall_score(true_stage == "Critical", pred_stage == "Critical", zero_division=0) if (true_stage == "Critical").any() else np.nan,
         "n_baris": int(len(true)),
         "n_degradasi": int(degr.sum()),
+        "mae_pra_failure": mean_absolute_error(true[pre], pred[pre]) if pre.any() else np.nan,
     }
     return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in out.items()}
 

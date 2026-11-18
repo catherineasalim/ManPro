@@ -27,6 +27,7 @@ RUL
 """
 import argparse
 import time
+from xml.parsers.expat import model
 
 import numpy as np
 import pandas as pd
@@ -72,7 +73,11 @@ def fit_classifier(kind, X, y, seed, **params):
         X = imputer.transform(X)
     if kind == "xgb":
         params.setdefault("scale_pos_weight", float((y == 0).sum() / max((y == 1).sum(), 1)))
-    model = make_classifier(kind, seed, **params).fit(X, y)
+    model = make_classifier(kind, seed, **params)
+    ms = model.get_params().get("max_samples")
+    if ms is not None and ms > len(X):
+        model.set_params(max_samples=None)
+    model = model.fit(X, y)
     return model, imputer
 
 
@@ -141,7 +146,11 @@ def fit_regressor(kind, X, y, seed, **params):
     imputer = MedianImputer().fit(X) if needs_imputer(kind) else None
     if imputer is not None:
         X = imputer.transform(X)
-    return make_regressor(kind, seed, **params).fit(X, y), imputer
+    model = make_regressor(kind, seed, **params)
+    ms = model.get_params().get("max_samples")
+    if ms is not None and ms > len(X):
+        model.set_params(max_samples=None)
+    return model.fit(X, y), imputer
 
 
 def predict_rul(model, imputer, X):

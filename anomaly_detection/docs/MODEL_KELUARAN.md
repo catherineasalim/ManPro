@@ -17,7 +17,8 @@ python -m anomaly_detection.anomali.train_hybrid              # sekali, jika sta
 python -m anomaly_detection.rul_final.train_baseline          # sekitar 4 menit
 python -m anomaly_detection.rul_final.train_final_calibrated  # sekitar 6 menit
 python -m anomaly_detection.laporan.analysis_report           # sekitar 1 menit
-python -m anomaly_detection.tests.test_model                  # 8 uji fungsi bersama
+python -m anomaly_detection.tests.test_model
+python -m anomaly_detection.tests.test_roi                     # uji rumus ROI
 python -m anomaly_detection.rul_final.predict                 # uji teknis model yang diekspor
 ```
 
@@ -32,12 +33,14 @@ Butuh `xgboost` selain paket di README utama: `pip install xgboost`.
 | Anomali, kejadian terdeteksi (Merah) | 12/16 (RF/XGBoost, April tanpa model) | 14/16, 4/4 kegagalan resmi |
 | Anomali, alarm palsu Merah | 2 (RF) - 7 (XGBoost) | 10 (0,46/minggu) |
 | Anomali, ECE (kalibrasi) | 0,0021 (skor mentah) | 0,0030 |
-| RUL, MAE semua baris | 8,6 jam (RF) | 7,8 jam |
-| RUL, MAE jendela degradasi | 41,4 jam (XGBoost) | 26,4 jam |
-| RUL, recall tahap Critical | 0,00 | 0,78 |
+| RUL, MAE semua baris | 8,6 jam (RF) | 12,2 jam |
+| RUL, MAE pra-failure (0 < RUL < 72 jam) | belum dihitung pada baseline | 34,4 jam |
+| RUL, recall tahap Critical | 0,00 | 0,76 |
 
-6 dari 9 target lulus. Yang tidak lulus beserta alasannya ada di laporan bagian 1.3. Ringkasnya, RUL 24-72 jam
-sebelum kegagalan tidak dapat dicapai karena F1-F3 tidak menunjukkan gejala sebelum label.
+Hasil ini memakai validasi maju-waktu yang diperbaiki. Pada jendela pra-failure, model (34,4 jam MAE) hanya sedikit
+mengungguli baseline naif RUL tetap 72 jam (38,2 jam) dan belum memberi lead-time. MAE semua baris didominasi menit
+sehat. Dengan hanya empat kegagalan resmi, RUL belum layak dipakai sebagai janji penggantian 24-72 jam sebelumnya.
+Cakupan interval pra-failure saat ini hanya 24,1%.
 
 ## Cara kerja model final
 
@@ -49,11 +52,13 @@ Anomali (per bulan uji):
 5. Skor terkalibrasi menggantikan HGB di aturan status hybrid. April tetap memakai cold start IsolationForest.
 
 RUL (per segmen uji, segmen k = periode menuju kegagalan k):
-1. XGBoost regresi, hiperparameter dari validasi dalam leave-one-segment-out.
-2. Kalibrasi isotonic prediksi ke RUL nyata.
-3. RUL = 0 saat model anomali menyatakan pola kegagalan (override Failure).
-4. Interval 80% conformal Mondrian.
-5. Ambang alarm RUL dari validasi dalam (biaya yang sama dengan anomali).
+1. Validasi expanding-window: segmen berikutnya hanya diuji memakai segmen terdahulu; saat baru satu segmen tersedia,
+   blok waktu diuji berurutan dan hanya dilatih dengan blok sebelumnya.
+2. Pilih hiperparameter XGBoost berdasar MAE pra-failure (0 < RUL < 72 jam), bukan MAE menit sehat yang mendominasi.
+3. Kalibrasi isotonic prediksi ke RUL nyata.
+4. RUL = 0 saat model anomali menyatakan pola kegagalan (override Failure).
+5. Interval 80% conformal Mondrian.
+6. Ambang alarm RUL dari validasi dalam (biaya yang sama dengan anomali).
 
 ## `prediksi_walkforward.parquet`
 
@@ -67,7 +72,7 @@ Satu baris per menit data_ok di luar zona grace, April-Agustus 2020. Untuk repla
 | `model_aktif` | False di April (belum ada label) |
 | `status_final`, `pemicu_final` | Status hybrid dengan model final |
 | `status_lama` | Status hybrid lama (HGB 0,5), untuk pembanding |
-| `rul_prognostik` | RUL dari regresi + isotonic, tanpa override |
+| `rul_prognostik` | RUL dari regresi + isotonic, tanpa override; belum terbukti memberi lead-time |
 | `rul_pred` | RUL final (0 saat pola kegagalan) |
 | `rul_bawah`, `rul_atas` | Interval 80% |
 | `rul_ambang` | Ambang alarm RUL segmen itu |
@@ -92,4 +97,10 @@ Model untuk data sesudah Agustus 2020. Pakai lewat `predict.score_table`. Kunci 
 1. **Jangan menilai `model_final.joblib` pada Februari-Agustus 2020.** Model itu sudah melihat data tersebut. Pakai `prediksi_walkforward.parquet`.
 2. **Tampilkan RUL sebagai tahap dan interval**, bukan hitung mundur jam. Model belum bisa memperingatkan 24-72 jam sebelumnya.
 3. **`p_terkalibrasi` boleh ditampilkan sebagai perkiraan peluang** (berbeda dengan `hgb_score` hybrid lama), tetapi tetap berdasarkan 16 kejadian saja.
-4. **Angka ROI di laporan adalah asumsi.** Ganti `ROI_SCENARIOS` di `analysis_report.py` dengan data biaya nyata, lalu jalankan ulang.
+4. **ROI memakai UB sesuai tabel asumsi biaya pada milestone:** 1 UB adalah biaya perbaikan terencana. `ROI_SCENARIOS`
+   menyajikan batas rendah, nilai dasar, dan batas tinggi. Frekuensi kegagalan dan durasi downtime belum ditetapkan
+   dalam tabel, sehingga laporan memakai frekuensi 4 kegagalan/7 bulan dan durasi label kegagalan rata-rata sebagai
+   proksi yang harus diganti bila data operasional tersedia.
+5. **TP/FN/FP ROI dihitung dari validasi walk-forward, bukan LOFO.** Alasannya untuk mencegah pelatihan memakai data
+   masa depan; laporan menandai ini sebagai perbedaan metode dari dokumen. ROI dihitung per tahun sebagai
+   penghematan terhadap strategi reaktif atau preventif dibagi biaya sistem tahunan.

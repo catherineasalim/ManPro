@@ -1,5 +1,5 @@
 {
-  "dibuat": "2026-11-18T19:45:06",
+  "dibuat": "2026-11-18T20:22:24",
   "data_latih": [
     "2020-02-01 00:00:00",
     "2020-09-01 03:59:00"
@@ -77,16 +77,16 @@
     ],
     "conformal_kuantil": {
       "0": [
-        2.3204507609613216,
-        5.620137439527525
+        -27.605090525832214,
+        9.315135782508804
       ],
       "1": [
-        -58.43536902079839,
-        13.56463097920161
+        -40.646329413146525,
+        14.197004403381797
       ],
       "2": [
-        2.3204507609613216,
-        5.579228917322212
+        -24.110060106948133,
+        9.315135782508804
       ]
     }
   },
@@ -203,28 +203,28 @@
       }
     ],
     "rul": {
-      "mae_semua": 7.7613,
-      "rmse_semua": 15.3025,
-      "mae_degradasi": 26.3997,
-      "rmse_degradasi": 35.3107,
-      "mae_kritis_24j": 28.2991,
-      "nasa_skor_degradasi": 125.2137,
+      "mae_semua": 12.1252,
+      "rmse_semua": 18.4843,
+      "mae_degradasi": 24.7549,
+      "rmse_degradasi": 34.0386,
+      "mae_kritis_24j": 27.699,
+      "nasa_skor_degradasi": 101.026,
       "akurasi_stage": 0.9576,
       "f1_makro_stage": 0.5514,
       "recall_critical": 0.7813,
       "n_baris": 143448,
       "n_degradasi": 12650,
-      "mae_pra_failure": 36.1382,
-      "mae_semua_tanpa_override": 8.3344,
-      "mae_degradasi_tanpa_override": 45.9364,
+      "mae_pra_failure": 33.862,
+      "mae_semua_tanpa_override": 12.6771,
+      "mae_degradasi_tanpa_override": 43.8538,
       "f1_makro_stage_tanpa_override": 0.3247,
       "recall_critical_tanpa_override": 0.0,
-      "cakupan_interval": 0.8886,
+      "cakupan_interval": 0.8717,
       "failure_terdeteksi": 0,
       "lead_time_median_jam": NaN,
       "alarm_rul_palsu_total": 0,
       "alarm_rul_palsu_per_bulan": 0.0,
-      "cakupan_pra_failure": 0.2711
+      "cakupan_pra_failure": 0.25
     },
     "target": [
       {
@@ -266,15 +266,15 @@
         "area": "RUL",
         "metrik": "MAE sebelum failure (jam)",
         "target": "<= 12.0",
-        "hasil": 36.1382,
+        "hasil": 33.862,
         "status": "TIDAK LULUS"
       },
       {
         "area": "RUL",
         "metrik": "Cakupan interval 80%",
         "target": "0.7-0.9",
-        "hasil": 0.8886,
-        "status": "LULUS"
+        "hasil": 0.25,
+        "status": "TIDAK LULUS"
       },
       {
         "area": "RUL",
@@ -293,7 +293,7 @@
     ]
   },
   "versi": {
-    "python": "3.13.7",
+    "python": "3.14.2",
     "scikit-learn": "1.9.1",
     "xgboost": "3.4.1",
     "pandas": "3.1.1",

@@ -33,14 +33,16 @@ Butuh `xgboost` selain paket di README utama: `pip install xgboost`.
 | Anomali, kejadian terdeteksi (Merah) | 12/16 (RF/XGBoost, April tanpa model) | 14/16, 4/4 kegagalan resmi |
 | Anomali, alarm palsu Merah | 2 (RF) - 7 (XGBoost) | 10 (0,46/minggu) |
 | Anomali, ECE (kalibrasi) | 0,0021 (skor mentah) | 0,0030 |
-| RUL, MAE semua baris | 8,6 jam (RF) | 12,2 jam |
-| RUL, MAE pra-failure (0 < RUL < 72 jam) | belum dihitung pada baseline | 34,4 jam |
-| RUL, recall tahap Critical | 0,00 | 0,76 |
+| RUL, MAE semua baris | 8,7 jam (RF) | 12,1 jam |
+| RUL, MAE pra-failure (0 < RUL < 72 jam) | 33,2 jam (XGBoost) - 35,1 jam (RF) | 33,9 jam |
+| RUL, recall tahap Critical | 0,00 | 0,78 |
 
-Hasil ini memakai validasi maju-waktu yang diperbaiki. Pada jendela pra-failure, model (34,4 jam MAE) hanya sedikit
-mengungguli baseline naif RUL tetap 72 jam (38,2 jam) dan belum memberi lead-time. MAE semua baris didominasi menit
-sehat. Dengan hanya empat kegagalan resmi, RUL belum layak dipakai sebagai janji penggantian 24-72 jam sebelumnya.
-Cakupan interval pra-failure saat ini hanya 24,1%.
+4 dari 9 target lulus. Hasil ini memakai validasi maju-waktu yang diperbaiki. Pada jendela pra-failure, model final
+(33,9 jam MAE) setara dengan baseline (33,2-35,1 jam) dan hanya sedikit mengungguli tebakan naif RUL tetap 72 jam
+(38,2 jam). Tidak ada kegagalan yang diperingatkan sebelum mulai, karena sensor sebelum F1-F3 tidak menunjukkan gejala.
+Keunggulan model final ada pada tahap Critical (recall 0,78), yang berasal dari override Failure model anomali.
+MAE semua baris didominasi menit sehat. Dengan hanya empat kegagalan resmi, RUL belum layak dipakai sebagai janji
+penggantian 24-72 jam sebelumnya. Cakupan interval pra-failure hanya 25%.
 
 ## Cara kerja model final
 

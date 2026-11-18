@@ -13,11 +13,11 @@ pakai (Remaining Useful Life, RUL). Hasil utama, diukur dengan validasi walk-for
 - Sistem final mendeteksi **14/16 kejadian** dan **4/4 kegagalan resmi** dengan alarm Merah, dengan delay median
   11 menit. Alarm palsu Merah tercatat 10 kali dalam 22 minggu (0,46 per minggu).
 - Skor anomali sudah terkalibrasi (ECE 0,0030), sehingga bisa dibaca sebagai perkiraan peluang.
-- MAE semua baris RUL adalah 12,2 jam, tetapi MAE pra-failure
+- MAE semua baris RUL adalah 12,1 jam, tetapi MAE pra-failure
   33,9 jam dibanding baseline sederhana RUL tetap 72 jam
   (38,2 jam). Tidak ada kegagalan yang diperingatkan sebelumnya pada validasi walk-forward;
   MAE semua baris didominasi menit sehat dan tidak membuktikan kemampuan prediksi dini.
-- 5 dari 9 target metrik tercapai.
+- 4 dari 9 target metrik tercapai.
 - Pada nilai dasar, ROI prediktif adalah 8.341,8% terhadap reaktif dan
   1.892,8% terhadap preventif, berdasarkan biaya tahunan dalam UB.
   ROI terhadap reaktif positif pada: Batas rendah, Dasar, Batas tinggi.
@@ -155,9 +155,9 @@ yang sebenarnya.
 
 | Model | MAE semua (jam) | MAE pra-failure (jam) | MAE degradasi (jam) | MAE <= 24 jam | Skor NASA | F1 tahap | Recall Critical | Alarm RUL palsu |
 |---|---|---|---|---|---|---|---|---|
-| Baseline Random Forest | 8,70 | - | 44,10 | 59,93 | 358,07 | 0,33 | 0,00 | 6 |
-| Baseline XGBoost | 10,26 | - | 41,40 | 56,45 | 313,05 | 0,34 | 0,00 | 6 |
-| Model final | 12,21 | 33,86 | 24,75 | 27,70 | 101,03 | 0,55 | 0,78 | 0 |
+| Baseline Random Forest | 8,70 | 35,10 | 44,10 | 59,93 | 358,07 | 0,33 | 0,00 | 6 |
+| Baseline XGBoost | 10,26 | 33,19 | 41,40 | 56,45 | 313,05 | 0,34 | 0,00 | 6 |
+| Model final | 12,13 | 33,86 | 24,75 | 27,70 | 101,03 | 0,55 | 0,78 | 0 |
 
 Per segmen uji (model final; MAE pra-failure hanya menghitung label 0 < RUL < 72 jam):
 
@@ -166,16 +166,16 @@ Per segmen uji (model final; MAE pra-failure hanya menghitung label 0 < RUL < 72
 | 2 | 8,87 | 47,20 | 50,24 | 0,40 | 0,52 | 0,89 |
 | 3 | 15,23 | 36,34 | 49,98 | 0,60 | 0,87 | 0,64 |
 | 4 | 21,35 | 20,14 | 26,33 | 0,56 | 0,65 | 0,75 |
-| 5 | 7,23 | - | - | 0,33 | - | 0,99 |
+| 5 | 7,01 | - | - | 0,33 | - | 1,00 |
 
 Model yang terpilih tiap segmen:
 
 | Segmen uji | Model terpilih | Ambang alarm (jam) | Validasi |
 |---|---|---|---|
-| 2 | XGBoost dangkal | 6,00 | expanding 4 blok waktu |
-| 3 | XGBoost dangkal | 6,00 | expanding per segmen |
-| 4 | XGBoost dangkal | 6,00 | expanding per segmen |
-| 5 | XGBoost dangkal | 6,00 | expanding per segmen |
+| 2 | XGBoost dangkal | 6,00 | 4 blok waktu di segmen 1 |
+| 3 | XGBoost dangkal | 6,00 | leave-one-segment-out |
+| 4 | XGBoost dangkal | 6,00 | leave-one-segment-out |
+| 5 | XGBoost sedang | 6,00 | leave-one-segment-out |
 
 ![Prediksi RUL](grafik/03_rul_walkforward.png)
 
@@ -194,14 +194,14 @@ janji hitung mundur atau rekomendasi penggantian otomatis.
 | Anomali | Model terkalibrasi: Brier skor Mei-Agu | ≤ 0,0019 | 0,0027 | Tidak lulus |
 | Anomali | Model terkalibrasi: ECE Mei-Agu | ≤ 0,05 | 0,0030 | Lulus |
 | RUL | MAE sebelum failure (jam) | ≤ 12,0 | 33,86 | Tidak lulus |
-| RUL | Cakupan interval 80% | 0,7 - 0,9 | 0,8682 | Lulus |
+| RUL | Cakupan interval 80% | 0,7 - 0,9 | 0,2500 | Tidak lulus |
 | RUL | Failure diperingatkan sebelum mulai (segmen 2-4) | ≥ 2 | 0,0000 | Tidak lulus |
 | RUL | Alarm RUL palsu per bulan | ≤ 1,0 | 0,0000 | Lulus |
 
 Target yang belum tercapai:
 - **Brier skor anomali** 0,0027, sedikit di atas target 0,0019.
 - **MAE pra-failure RUL** 33,9 jam, di atas target 12 jam. Cakupan interval keseluruhan
-  86,8% masih dalam target 70-90%, tetapi cakupan pra-failure hanya
+  87,2% masih dalam target 70-90%, tetapi cakupan pra-failure hanya
   25,0%, sehingga intervalnya belum dapat diandalkan saat degradasi.
 - **Peringatan RUL sebelum kegagalan** tidak tercapai. Bagian 8 menunjukkan bahwa sinyal 6-72 jam sebelumnya memang
   tidak ada pada F1-F3. Baseline XGBoost sempat memberi peringatan, tetapi dengan 6 alarm palsu.
@@ -467,31 +467,31 @@ Model anomali:
 
 | Fitur | Model anomali | Model RUL |
 |---|---|---|
-| tp2_mean_15 | 0,140 | 0,002 |
-| charge_slope_60 | 0,107 | 0,001 |
+| tp2_mean_15 | 0,140 | 0,006 |
+| charge_slope_60 | 0,107 | 0,002 |
 | h1_mean_15 | 0,087 | 0,000 |
 | tower_sw_15 | 0,079 | 0,000 |
-| load_run_min | 0,076 | 0,020 |
-| duty_15 | 0,075 | 0,000 |
+| load_run_min | 0,076 | 0,009 |
+| duty_15 | 0,075 | 0,001 |
 | tp2_mean_60 | 0,068 | 0,002 |
-| h1_mean_60 | 0,048 | 0,009 |
+| h1_mean_60 | 0,048 | 0,015 |
 
 Model RUL:
 
 | Fitur | Model anomali | Model RUL |
 |---|---|---|
-| oil_mean_15 | 0,002 | 0,342 |
-| discharge_slope_60 | 0,000 | 0,213 |
-| oil_mean_60 | 0,005 | 0,060 |
-| curr_mean_60 | 0,032 | 0,045 |
-| discharge_slope_15 | 0,001 | 0,024 |
-| h1_mean_360 | 0,001 | 0,024 |
-| charge_slope_360 | 0,024 | 0,022 |
-| duty_60 | 0,038 | 0,021 |
+| oil_mean_15 | 0,002 | 0,353 |
+| discharge_slope_60 | 0,000 | 0,116 |
+| curr_mean_60 | 0,032 | 0,102 |
+| cooling_deficit | 0,001 | 0,034 |
+| oil_mean_60 | 0,005 | 0,034 |
+| tp3_min_360 | 0,000 | 0,030 |
+| discharge_slope_15 | 0,001 | 0,028 |
+| duty_1440 | 0,001 | 0,027 |
 
 - Model anomali terutama memakai tp2_mean_15, charge_slope_60, h1_mean_15, tower_sw_15: tekanan, laju pengisian tekanan, dan lama kompresor
   berbeban. Saat terjadi kebocoran, tekanan turun dan kompresor butuh waktu lebih lama untuk mengisi.
-- Model RUL terutama memakai oil_mean_15, discharge_slope_60, oil_mean_60. Suhu oli dipengaruhi suhu lingkungan dan musim, sehingga model RUL
+- Model RUL terutama memakai oil_mean_15, discharge_slope_60, curr_mean_60. Suhu oli dipengaruhi suhu lingkungan dan musim, sehingga model RUL
   perlu dilatih ulang secara berkala.
 
 ---

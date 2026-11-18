@@ -208,17 +208,20 @@ Walk-forward results, April-August 2020:
 |---|---|---|
 | Anomaly, events detected (red) | 12/16 | 14/16, all 4 official failures |
 | Anomaly, false red alarms | 2-7 | 10 (0.46 per week) |
-| RUL, MAE all rows | 8.6 h | 7.8 h |
-| RUL, MAE in the 72 h before failure | 41.4 h | 26.4 h |
+| RUL, MAE all rows | 8.7 h | 12.1 h |
+| RUL, MAE before failure (0 < RUL < 72 h) | 33.2-35.1 h | 33.9 h |
+| RUL, recall of the Critical stage | 0.00 | 0.78 |
 
-6 of 9 targets are met. The RUL model cannot warn 24-72 hours ahead: before F1-F3 the sensors look healthy until the
-failure starts. Show RUL as a stage (Failure / Critical / Warning / Normal) with its interval, not as an hour countdown.
-The ROI numbers in the report are based on assumed costs.
+4 of 9 targets are met. The RUL model cannot warn 24-72 hours ahead: before F1-F3 the sensors look healthy until the
+failure starts, so its error before failure is close to a naive "always 72 h" guess (38.2 h). Show RUL as a stage
+(Failure / Critical / Warning / Normal) with its interval, not as an hour countdown.
+ROI is computed in cost units (1 UB = one planned repair) with the formulas and low / base / high values from the
+milestone cost-assumption table.
 
 These results were made with Python 3.14, scikit-learn 1.9.1, xgboost 3.4.1, pandas 3.1.1 and numpy 2.5.5
 (the exact versions are saved in `output/model/final/metadata.json`). Other versions give slightly different numbers.
-The files in `output/hybrid/` were made earlier with the versions in step 2 and were not regenerated:
-re-running `train_hybrid` with newer libraries changes its results a little (for example 3 false red alarms instead of 5).
+The hybrid result in `output/hybrid/` is 14/16 events with 5 false red alarms. Re-running `train_hybrid` with other
+library versions can change it a little (for example 3 false red alarms instead of 5).
 
 ---
 

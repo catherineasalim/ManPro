@@ -27,7 +27,6 @@ RUL
 """
 import argparse
 import time
-from xml.parsers.expat import model
 
 import numpy as np
 import pandas as pd

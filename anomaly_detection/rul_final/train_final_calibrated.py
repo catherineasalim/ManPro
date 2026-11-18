@@ -39,7 +39,6 @@ Target metrik ditulis di TARGETS sebelum model final dijalankan. Hasilnya dilapo
 """
 import argparse
 import platform
-from pyexpat import model
 import time
 
 import joblib
@@ -341,16 +340,20 @@ def apply_conformal(table, pred):
 
 
 def inner_splits(train_table, segments, n_blocks=4):
-    """Leave-one-segment-out jika ada >= 2 segmen latih. Jika hanya satu, blok waktu berurutan di dalam segmen itu."""
+    """Expanding window: setiap validasi hanya dilatih dengan data yang lebih awal.
+
+    >= 2 segmen latih: segmen ke-i divalidasi dengan model dari segmen 1..i-1.
+    Hanya 1 segmen: dibagi menjadi n_blocks blok waktu, blok ke-j divalidasi dengan model dari blok 1..j-1.
+    """
+    segments = sorted(segments)
     if len(segments) >= 2:
-        for held in segments:
-            yield rul_rows(train_table, [s for s in segments if s != held], HEALTHY_STEP), rul_rows(train_table, [held])
+        for i in range(1, len(segments)):
+            yield rul_rows(train_table, segments[:i], HEALTHY_STEP), rul_rows(train_table, [segments[i]])
         return
-    rows = rul_rows(train_table, segments)
+    rows = rul_rows(train_table, segments).sort_index()
     edges = np.linspace(0, len(rows), n_blocks + 1).astype(int)
-    for a, b in zip(edges[:-1], edges[1:]):
-        valid = rows.iloc[a:b]
-        train = rows.drop(valid.index)
+    for a, b in zip(edges[1:-1], edges[2:]):
+        train, valid = rows.iloc[:a], rows.iloc[a:b]
         healthy = train["RUL_Hours"].to_numpy() >= RUL_CAP
         yield train[~healthy | (train.index.minute.to_numpy() % HEALTHY_STEP == 0)], valid
 
@@ -372,7 +375,9 @@ def inner_rul(train_table, segments, seed, cost_ratio):
     for name, pred in oof.items():
         isos[name] = fit_isotonic_rul(pred.to_numpy(), true_all.to_numpy())
         m = rul_metrics(true_all, isos[name].predict(pred.to_numpy()))
-        scores[name] = (m["mae_semua"] + m["mae_degradasi"]) / 2  # Seimbang antara baris sehat dan jendela degradasi.
+        # Dipilih dari MAE pra-failure (0 < RUL < 72 jam); MAE semua baris didominasi menit sehat.
+        pra = m["mae_pra_failure"]
+        scores[name] = pra if not pd.isna(pra) else (m["mae_semua"] + m["mae_degradasi"]) / 2
     chosen = min(scores, key=scores.get)
     iso = isos[chosen]
     pred = pd.Series(iso.predict(oof[chosen].to_numpy()), index=oof[chosen].index)

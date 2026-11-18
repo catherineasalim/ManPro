@@ -18,8 +18,8 @@ pakai (Remaining Useful Life, RUL). Hasil utama, diukur dengan validasi walk-for
   (38,2 jam). Tidak ada kegagalan yang diperingatkan sebelumnya pada validasi walk-forward;
   MAE semua baris didominasi menit sehat dan tidak membuktikan kemampuan prediksi dini.
 - 4 dari 9 target metrik tercapai.
-- Pada nilai dasar, ROI prediktif adalah 8.341,8% terhadap reaktif dan
-  1.892,8% terhadap preventif, berdasarkan biaya tahunan dalam UB.
+- Pada nilai dasar, ROI prediktif adalah 8.389,3% terhadap reaktif dan
+  1.940,3% terhadap preventif, berdasarkan biaya tahunan dalam UB.
   ROI terhadap reaktif positif pada: Batas rendah, Dasar, Batas tinggi.
 - Insight terpenting: setiap kegagalan resmi didahului kejadian kecil dalam 2-7 hari, sehingga kejadian kecil layak
   dijadikan pemicu inspeksi.
@@ -124,7 +124,7 @@ Target ditetapkan setelah melihat hasil baseline, sebelum model final dijalankan
 | Baseline Random Forest | 12/16 | 3/4 | 3 | 8,5 | 0,984 | 0,990 | 0,003 |
 | Baseline XGBoost | 12/16 | 3/4 | 7 | 7,5 | 0,973 | 0,991 | 0,002 |
 | Model final terkalibrasi | 12/16 | 3/4 | 9 | 7,5 | 0,965 | 0,986 | 0,003 |
-| Sistem hybrid versi awal, Merah | 14/16 | 4/4 | 5 | 10,5 | - | - | - |
+| Sistem hybrid versi awal, Merah | 14/16 | 4/4 | 3 | 13,0 | - | - | - |
 | Sistem hybrid versi awal, Kuning/Merah | 16/16 | 4/4 | 59 | 8,5 | - | - | - |
 | Sistem hybrid final, Merah | 14/16 | 4/4 | 10 | 11,0 | - | - | - |
 | Sistem hybrid final, Kuning/Merah | 16/16 | 4/4 | 60 | 8,5 | - | - | - |
@@ -133,7 +133,7 @@ Baseline dan model final tunggal hanya mendeteksi 12 kejadian, karena April belu
 model supervised. Sistem hybrid menutup celah ini dengan IsolationForest, sehingga F1 tetap terdeteksi.
 
 Dibanding sistem hybrid versi awal, sistem final mendeteksi kejadian yang sama (14/16), dengan alarm palsu
-10 berbanding 5. Versi awal memakai 9 fitur yang dipilih setelah melihat data uji, sehingga angkanya
+10 berbanding 3. Versi awal memakai 9 fitur yang dipilih setelah melihat data uji, sehingga angkanya
 sedikit lebih optimistis. Kelebihan versi final: skornya terkalibrasi dan seluruh pilihannya dapat dipertanggungjawabkan.
 
 Model yang terpilih tiap bulan:
@@ -303,7 +303,7 @@ Durasi downtime diproksikan dengan rata-rata lama interval label 4 kegagalan (21
 bukan catatan downtime operasional terverifikasi. Ganti kedua nilai ini dengan data operasional bila tersedia.
 
 Metrik deteksi diambil dari validasi walk-forward sistem hybrid final, bukan LOFO: recall kegagalan resmi 100%
-dan 0,82 episode alarm Merah palsu per minggu per unit. Walk-forward dipakai
+dan 0,73 episode alarm Merah palsu per minggu per unit. Walk-forward dipakai
 untuk menghindari pelatihan dengan data masa depan; ini merupakan perbedaan metode dari LOFO yang disebut dokumen.
 Kejadian kecil yang tidak cocok dengan kegagalan resmi dihitung konservatif sebagai FP.
 
@@ -321,9 +321,9 @@ Perhitungan per tahun mengikuti rumus ruang lingkup:
 
 | Skenario | TP/tahun | FN/tahun | FP/tahun | Biaya reaktif/tahun (UB) | Biaya preventif/tahun (UB) | Biaya prediktif/tahun (UB) | Penghematan vs reaktif/tahun (UB) | ROI vs reaktif | Penghematan vs preventif/tahun (UB) | ROI vs preventif |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Batas rendah | 6,9 | 0,0 | 42,8 | 43,71 UB | 5,37 UB | 8,13 UB | 35,58 UB | 7.116,3% | -2,76 UB | -551,2% |
-| Dasar | 6,9 | 0,0 | 42,8 | 95,56 UB | 31,07 UB | 12,14 UB | 83,42 UB | 8.341,8% | 18,93 UB | 1.892,8% |
-| Batas tinggi | 6,9 | 0,0 | 42,8 | 259,24 UB | 163,55 UB | 21,85 UB | 237,39 UB | 7.913,1% | 141,70 UB | 4.723,2% |
+| Batas rendah | 6,9 | 0,0 | 38,1 | 43,71 UB | 5,37 UB | 7,89 UB | 35,82 UB | 7.163,9% | -2,52 UB | -503,6% |
+| Dasar | 6,9 | 0,0 | 38,1 | 95,56 UB | 31,07 UB | 11,66 UB | 83,89 UB | 8.389,3% | 19,40 UB | 1.940,3% |
+| Batas tinggi | 6,9 | 0,0 | 38,1 | 259,24 UB | 163,55 UB | 20,90 UB | 238,34 UB | 7.944,8% | 142,65 UB | 4.754,9% |
 
 ![Simulasi ROI](grafik/05_roi_skenario.png)
 
@@ -339,15 +339,15 @@ Setiap parameter pada nilai dasar digeser ±30%, parameter lain tetap. ROI sensi
 
 | Parameter | ROI jika -30% (%) | ROI jika +30% (%) | Rentang (poin %) |
 |---|---|---|---|
-| Biaya sistem prediktif (UB/tahun) | 11.959,7 | 6.393,7 | 5.566,0 |
-| Kegagalan besar per unit per tahun | 5.680,8 | 11.002,8 | 5.322,0 |
-| Downtime per kegagalan (jam) | 6.092,2 | 10.591,3 | 4.499,1 |
-| Biaya downtime per jam (UB/jam) | 6.092,2 | 10.591,3 | 4.499,1 |
-| Recall kegagalan resmi | 5.680,8 | 8.341,8 | 2.661,0 |
-| Biaya perbaikan darurat (UB) | 7.724,6 | 8.958,9 | 1.234,3 |
-| Biaya perbaikan terencana prediktif (UB) | 8.547,5 | 8.136,1 | 411,4 |
-| Biaya inspeksi per alarm palsu (UB) | 8.470,2 | 8.213,3 | 256,9 |
-| Alarm Merah tanpa kegagalan resmi per minggu | 8.470,2 | 8.213,3 | 256,9 |
+| Biaya sistem prediktif (UB/tahun) | 12.027,6 | 6.430,3 | 5.597,4 |
+| Kegagalan besar per unit per tahun | 5.728,3 | 11.050,3 | 5.322,0 |
+| Downtime per kegagalan (jam) | 6.139,8 | 10.638,9 | 4.499,1 |
+| Biaya downtime per jam (UB/jam) | 6.139,8 | 10.638,9 | 4.499,1 |
+| Recall kegagalan resmi | 5.728,3 | 8.389,3 | 2.661,0 |
+| Biaya perbaikan darurat (UB) | 7.772,2 | 9.006,5 | 1.234,3 |
+| Biaya perbaikan terencana prediktif (UB) | 8.595,1 | 8.183,6 | 411,4 |
+| Biaya inspeksi per alarm palsu (UB) | 8.503,5 | 8.275,2 | 228,4 |
+| Alarm Merah tanpa kegagalan resmi per minggu | 8.503,5 | 8.275,2 | 228,4 |
 
 ### 7.2 Titik impas
 
@@ -355,9 +355,9 @@ Nilai parameter yang membuat ROI terhadap reaktif tepat nol, parameter lain teta
 
 | Parameter | Nilai dasar | Titik impas | Syarat ROI positif |
 |---|---|---|---|
-| Recall kegagalan resmi | 1,00 | 0,06 | minimal |
-| Alarm Merah tanpa kegagalan resmi per minggu | 0,82 | 16,86 | maksimal |
-| Kegagalan besar per unit per tahun | 6,86 | 0,41 | minimal |
+| Recall kegagalan resmi | 1,00 | 0,05 | minimal |
+| Alarm Merah tanpa kegagalan resmi per minggu | 0,73 | 16,86 | maksimal |
+| Kegagalan besar per unit per tahun | 6,86 | 0,37 | minimal |
 
 ### 7.3 Sensitivitas ambang
 
@@ -392,7 +392,7 @@ Kurva ini dihitung pada data uji, sehingga hanya menggambarkan trade-off dan tid
    **downtime per kegagalan (jam)**. Ketiganya asumsi bisnis, sehingga validasi data biaya lebih mendesak
    daripada peningkatan model.
 2. Pada nilai dasar, ROI terhadap reaktif tetap positif selama alarm Merah tanpa kegagalan resmi di bawah 16,86 per minggu per unit
-   (saat ini 0,82).
+   (saat ini 0,73).
 3. Ambang 0,75-0,90 memberi alarm palsu paling sedikit tanpa kehilangan kejadian. Ambang yang dipilih model berada
    di kisaran 0,30-0,85, sehingga ada ruang perbaikan jika data latih bertambah.
 4. Karena recall kegagalan resmi sudah 100% pada sampel kecil ini, model belum membuktikan lead-time yang memberi

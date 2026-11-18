@@ -1,5 +1,5 @@
 {
-  "dibuat": "2026-11-18T20:22:24",
+  "dibuat": "2026-11-18T20:50:40",
   "data_latih": [
     "2020-02-01 00:00:00",
     "2020-09-01 03:59:00"
@@ -133,12 +133,12 @@
         "metode": "Hybrid lama Merah (HGB 0,5)",
         "kejadian": "14/16",
         "resmi": "4/4",
-        "alarm_palsu": 5,
-        "palsu_per_minggu": 0.229,
-        "precision_kejadian": 0.773,
+        "alarm_palsu": 3,
+        "palsu_per_minggu": 0.137,
+        "precision_kejadian": 0.85,
         "recall_kejadian": 0.875,
-        "f1_kejadian": 0.821,
-        "delay_median_menit": 10.5,
+        "f1_kejadian": 0.862,
+        "delay_median_menit": 13.0,
         "meleset": "E03,E04",
         "precision_baris": NaN,
         "recall_baris": NaN,
@@ -293,10 +293,10 @@
     ]
   },
   "versi": {
-    "python": "3.14.2",
+    "python": "3.14.7",
     "scikit-learn": "1.9.1",
     "xgboost": "3.4.1",
-    "pandas": "3.1.1",
-    "numpy": "2.5.5"
+    "pandas": "3.0.6",
+    "numpy": "2.5.3"
   }
 }

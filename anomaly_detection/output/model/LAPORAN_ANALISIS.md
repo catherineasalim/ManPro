@@ -172,10 +172,10 @@ Model yang terpilih tiap segmen:
 
 | Segmen uji | Model terpilih | Ambang alarm (jam) | Validasi |
 |---|---|---|---|
-| 2 | XGBoost dangkal | 6,00 | 4 blok waktu di segmen 1 |
-| 3 | XGBoost dangkal | 6,00 | leave-one-segment-out |
-| 4 | XGBoost dangkal | 6,00 | leave-one-segment-out |
-| 5 | XGBoost sedang | 6,00 | leave-one-segment-out |
+| 2 | XGBoost dangkal | 6,00 | expanding-window 4 blok waktu di segmen 1 |
+| 3 | XGBoost dangkal | 6,00 | expanding-window segmen 1-2 |
+| 4 | XGBoost dangkal | 6,00 | expanding-window segmen 1-3 |
+| 5 | XGBoost sedang | 6,00 | expanding-window segmen 1-4 |
 
 ![Prediksi RUL](grafik/03_rul_walkforward.png)
 

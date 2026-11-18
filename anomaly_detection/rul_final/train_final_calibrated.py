@@ -25,9 +25,10 @@ Anomali (per putaran bulan Mei-Agustus; April tanpa label sehingga tetap memakai
   5. Skor terkalibrasi menggantikan HGB di sistem hybrid (hybrid.combine_status), aturan status lain tidak berubah.
 
 RUL (per segmen uji 2-5)
-  1. Validasi dalam leave-one-segment-out di antara segmen latih. Segmen uji 2 hanya punya satu segmen latih,
-     sehingga validasi dalamnya memakai 4 blok waktu berurutan di dalam segmen 1.
-  2. Pilih hiperparameter XGBoost dengan rata-rata MAE semua baris dan MAE jendela degradasi terkecil.
+  1. Validasi dalam expanding-window: segmen latih ke-i divalidasi dengan model dari segmen sebelumnya saja.
+     Segmen uji 2 hanya punya satu segmen latih, sehingga segmen 1 dibagi 4 blok waktu berurutan dan tiap blok
+     divalidasi dengan model dari blok sebelumnya.
+  2. Pilih hiperparameter XGBoost dengan MAE pra-failure (0 < RUL < 72 jam) terkecil.
   3. Kalibrasi interval: conformal split dari residu out-of-fold, terpisah per rentang prediksi (Mondrian),
      target cakupan 80%.
   3b. Kalibrasi titik: isotonic dari prediksi out-of-fold ke RUL nyata (menghapus bias ke bawah pada baris sehat).
@@ -433,7 +434,7 @@ def rul_walk_forward(train_table, online_table, failure_state, seed, cost_ratio)
             }
         )
         preds.append(pd.DataFrame({"rul_prognostik": prognostic, "rul_pred": pred, "rul_bawah": lo, "rul_atas": hi, "rul_ambang": alert}, index=test.index))
-        validation = "leave-one-segment-out" if len(segments) >= 2 else "4 blok waktu di segmen 1"
+        validation = f"expanding-window segmen 1-{len(segments)}" if len(segments) >= 2 else "expanding-window 4 blok waktu di segmen 1"
         choices.append({"segmen_uji": k, "model": f"xgb_{name}", "ambang": alert, "validasi_dalam": validation, **{f"dalam_skor_{n}": round(v, 2) for n, v in inner_scores.items()}})
         print(f"  RUL segmen {k}: {name}, alarm {alert} jam, {time.time() - t0:.0f} detik", flush=True)
     return pd.DataFrame(rows), pd.concat(preds).sort_index(), pd.DataFrame(choices)

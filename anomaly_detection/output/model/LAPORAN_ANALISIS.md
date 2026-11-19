@@ -19,7 +19,9 @@ pakai (Remaining Useful Life, RUL). Hasil utama, diukur dengan validasi walk-for
   MAE semua baris didominasi menit sehat dan tidak membuktikan kemampuan prediksi dini.
 - 6 dari 9 target metrik tercapai.
 - Pada nilai dasar, ROI prediktif adalah 8.365,6% terhadap reaktif dan
-  1.916,6% terhadap preventif, berdasarkan biaya tahunan dalam UB.
+  1.916,6% terhadap preventif, berdasarkan biaya tahunan dalam UB. Dengan ilustrasi
+  1 UB = Rp 50 juta, penghematan per unit APU per tahun sekitar Rp 4,18 miliar terhadap reaktif dan
+  Rp 958 juta terhadap preventif.
   ROI terhadap reaktif positif pada: Batas rendah, Dasar, Batas tinggi.
 - Insight terpenting: setiap kegagalan resmi didahului kejadian kecil dalam 2-7 hari, sehingga kejadian kecil layak
   dijadikan pemicu inspeksi.
@@ -282,23 +284,38 @@ Temuan:
 Perhitungan memakai **1 UB = biaya satu perbaikan terencana** sesuai definisi dokumen. Biaya dasar dan batas rendah/tinggi
 berikut mengikuti tabel asumsi biaya yang disepakati:
 
-| Parameter | Batas rendah | Dasar | Batas tinggi |
-|---|---|---|---|
-| Kegagalan besar per unit per tahun | 6,86 | 6,86 | 6,86 |
-| Downtime per kegagalan (jam) | 21,87 | 21,87 | 21,87 |
-| Biaya downtime per jam (UB/jam) | 0,20 UB | 0,50 UB | 1,50 UB |
-| Biaya perbaikan darurat (UB) | 2,00 UB | 3,00 UB | 5,00 UB |
-| Biaya perbaikan terencana prediktif (UB) | 0,80 UB | 1,00 UB | 1,50 UB |
-| Biaya inspeksi per alarm palsu (UB) | 0,05 UB | 0,10 UB | 0,20 UB |
-| Interval penggantian terjadwal (bulan) | 12 | 6 | 3 |
-| Biaya penggantian terjadwal (UB/penggantian) | 1,00 UB | 1,20 UB | 2,00 UB |
-| Kegagalan yang lolos di preventif | 10% | 30% | 60% |
-| Biaya sistem prediktif (UB/tahun) | 0,50 UB | 1,00 UB | 3,00 UB |
+| Parameter | Batas rendah | Dasar | Batas tinggi | Dasar dalam rupiah |
+|---|---|---|---|---|
+| Kegagalan besar per unit per tahun | 6,86 | 6,86 | 6,86 | - |
+| Downtime per kegagalan (jam) | 21,87 | 21,87 | 21,87 | - |
+| Biaya downtime per jam (UB/jam) | 0,20 UB | 0,50 UB | 1,50 UB | Rp 25 juta/jam |
+| Biaya perbaikan darurat (UB) | 2,00 UB | 3,00 UB | 5,00 UB | Rp 150 juta |
+| Biaya perbaikan terencana prediktif (UB) | 0,80 UB | 1,00 UB | 1,50 UB | Rp 50 juta |
+| Biaya inspeksi per alarm palsu (UB) | 0,05 UB | 0,10 UB | 0,20 UB | Rp 5 juta |
+| Interval penggantian terjadwal (bulan) | 12 | 6 | 3 | - |
+| Biaya penggantian terjadwal (UB/penggantian) | 1,00 UB | 1,20 UB | 2,00 UB | Rp 60 juta |
+| Kegagalan yang lolos di preventif | 10% | 30% | 60% | - |
+| Biaya sistem prediktif (UB/tahun) | 0,50 UB | 1,00 UB | 3,00 UB | Rp 50 juta/tahun |
 
 Dokumen tidak menetapkan frekuensi kegagalan dan durasi downtime. Untuk ilustrasi, frekuensi dasar diambil dari 4
 kegagalan resmi selama 7 bulan pada satu unit (6,86 kegagalan/tahun).
 Durasi downtime diproksikan dengan rata-rata lama interval label 4 kegagalan (21,87 jam),
 bukan catatan downtime operasional terverifikasi. Ganti kedua nilai ini dengan data operasional bila tersedia.
+
+**Konversi ke rupiah (ilustrasi).** Satu UB diasumsikan setara **Rp 50 juta**. Acuannya, harga satu unit
+kompresor udara kereta berada di kisaran €8.500-11.000 per unit (sekitar Rp 150-210 juta) [4]. Perbaikan terencana
+(ganti katup, seal, filter, atau bearing ditambah tenaga teknisi) diperkirakan sekitar sepertiga harga unit, sehingga
+1 UB ≈ Rp 50 juta, dan perbaikan darurat (3 UB ≈ Rp 150 juta) kurang lebih setara penggantian
+unit. Porsi sepertiga adalah asumsi tim, dan sumber harga unit tidak menyebut tahun maupun status unit (baru atau
+rekondisi). Sebagai pembanding skala, kontrak suku cadang KAI Commuter bernilai Rp 734 miliar untuk tiga tahun [5].
+Nilai rupiah hanya memberi gambaran nominal: rumus dan tabel asumsi tetap dalam UB, dan persentase ROI tidak berubah
+berapa pun nilai rupiah per UB.
+
+**Biaya downtime.** Biaya downtime (0,5 UB/jam ≈ Rp 25 juta/jam pada nilai dasar) mencakup kehilangan pendapatan selama
+rangkaian tidak beroperasi, biaya operasional yang tetap berjalan (kru, energi, rangkaian pengganti), serta biaya
+gangguan layanan seperti pengalihan perjalanan atau kompensasi penumpang [6]. Biaya perbaikan tidak termasuk di sini
+karena sudah dihitung terpisah sebagai perbaikan darurat. Nilai per jam adalah asumsi karena data biaya downtime
+rangkaian kereta tidak tersedia untuk publik; sensitivitasnya diuji pada rentang 0,2-1,5 UB/jam (bagian 7).
 
 Metrik deteksi diambil dari validasi walk-forward sistem hybrid final, bukan LOFO: recall kegagalan resmi 100%
 dan 0,78 episode alarm Merah palsu per minggu per unit. Walk-forward dipakai
@@ -322,6 +339,14 @@ Perhitungan per tahun mengikuti rumus ruang lingkup:
 | Batas rendah | 6,9 | 0,0 | 40,4 | 43,71 UB | 5,37 UB | 8,01 UB | 35,70 UB | 7.140,1% | -2,64 UB | -527,4% |
 | Dasar | 6,9 | 0,0 | 40,4 | 95,56 UB | 31,07 UB | 11,90 UB | 83,66 UB | 8.365,6% | 19,17 UB | 1.916,6% |
 | Batas tinggi | 6,9 | 0,0 | 40,4 | 259,24 UB | 163,55 UB | 21,37 UB | 237,87 UB | 7.928,9% | 142,17 UB | 4.739,0% |
+
+Dalam rupiah (1 UB = Rp 50 juta, per unit APU per tahun):
+
+| Skenario | Reaktif/tahun | Preventif/tahun | Prediktif/tahun | Hemat vs reaktif/tahun | Hemat vs preventif/tahun |
+|---|---|---|---|---|---|
+| Batas rendah | Rp 2,19 miliar | Rp 269 juta | Rp 400 juta | Rp 1,79 miliar | -Rp 132 juta |
+| Dasar | Rp 4,78 miliar | Rp 1,55 miliar | Rp 595 juta | Rp 4,18 miliar | Rp 958 juta |
+| Batas tinggi | Rp 12,96 miliar | Rp 8,18 miliar | Rp 1,07 miliar | Rp 11,89 miliar | Rp 7,11 miliar |
 
 ![Simulasi ROI](grafik/05_roi_skenario.png)
 
@@ -391,8 +416,9 @@ Kurva ini dihitung pada data uji, sehingga hanya menggambarkan trade-off dan tid
    daripada peningkatan model.
 2. Pada nilai dasar, ROI terhadap reaktif tetap positif selama alarm Merah tanpa kegagalan resmi di bawah 16,86 per minggu per unit
    (saat ini 0,78).
-3. Ambang 0,75-0,90 memberi alarm palsu paling sedikit tanpa kehilangan kejadian. Ambang yang dipilih model berada
-   di kisaran 0,30-0,85, sehingga ada ruang perbaikan jika data latih bertambah.
+3. Pada data uji, ambang 0,50-0,90 memberi alarm palsu paling sedikit tanpa kehilangan kejadian. Ambang yang
+   dipilih validasi dalam berada di kisaran 0,45-0,90. Kurva ini dihitung pada data uji, jadi tidak dipakai untuk
+   memilih ambang.
 4. Karena recall kegagalan resmi sudah 100% pada sampel kecil ini, model belum membuktikan lead-time yang memberi
    penghematan. ROI tetap simulasi bersyarat, bukan bukti kelayakan investasi.
 
@@ -526,12 +552,25 @@ Model RUL:
 
 ## Daftar Pustaka
 
-- Davari, N., Veloso, B., Ribeiro, R. P., Pereira, P. M., & Gama, J. (2021). Predictive maintenance based on anomaly
+- [1] Davari, N., Veloso, B., Ribeiro, R. P., Pereira, P. M., & Gama, J. (2021). Predictive maintenance based on anomaly
   detection using deep learning for air production unit in the railway industry. *IEEE DSAA 2021*.
-- Veloso, B., Ribeiro, R. P., Gama, J., & Pereira, P. M. (2022). The MetroPT dataset for predictive maintenance.
+- [2] Veloso, B., Ribeiro, R. P., Gama, J., & Pereira, P. M. (2022). The MetroPT dataset for predictive maintenance.
   *Scientific Data*, 9, 764.
-- Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). Damage propagation modeling for aircraft engine run-to-failure
+- [3] Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). Damage propagation modeling for aircraft engine run-to-failure
   simulation. *PHM 2008*.
+
+Sumber asumsi biaya (bagian 6.1):
+
+- [4] Daftar harga komponen kompresor tipe Knorr-Bremse (spreadsheet publik, tanpa tahun).
+  https://docs.google.com/spreadsheets/d/1B2FjPw758KyklRspP4W3rqZNrt0mtDM3/edit
+- [5] PwC Indonesia (2024). KCI, JRTM cooperate to procure Commuter Line spare parts for Rp734 billion.
+  https://pwc.com/id/en/media-centre/infrastructure-news/march-2024/kci-jrtm-cooperate-to-procure-commuter-line-spare-parts-for-rp73.html
+- [6] Kementerian Perhubungan (2019). Peraturan Menteri Perhubungan No. PM 63 Tahun 2019 tentang Standar Pelayanan
+  Minimal Angkutan Orang dengan Kereta Api (kompensasi keterlambatan; berlaku untuk KA antarkota).
+- Bisnis.com (2023). KAI Commuter mulai retrofit 19 trainset KRL, biayanya sentuh Rp2,2 triliun.
+  https://ekonomi.bisnis.com/read/20231104/98/1711058/kai-commuter-mulai-retrofit-19-trainset-krl-biayanya-sentuh-rp22-triliun
+- Magazine Industry USA. Replacement of compressed air production units on TGV PSE trains (interval perawatan kompresor).
+  https://magazine-industry-usa.com/news/1108-replacement-of-compressed-air-production-units-on-tgv-pse-trains
 
 ## Lampiran: Berkas Proyek
 

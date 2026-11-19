@@ -112,7 +112,9 @@ Model untuk data sesudah Agustus 2020. Pakai lewat `predict.score_table`. Kunci 
 4. **ROI memakai UB sesuai tabel asumsi biaya pada milestone:** 1 UB adalah biaya perbaikan terencana. `ROI_SCENARIOS`
    menyajikan batas rendah, nilai dasar, dan batas tinggi. Frekuensi kegagalan dan durasi downtime belum ditetapkan
    dalam tabel, sehingga laporan memakai frekuensi 4 kegagalan/7 bulan dan durasi label kegagalan rata-rata sebagai
-   proksi yang harus diganti bila data operasional tersedia.
+   proksi yang harus diganti bila data operasional tersedia. Laporan juga menampilkan ilustrasi rupiah dengan
+   `RUPIAH_PER_UB = 50_000_000` di `analysis_report.py`; ubah konstanta ini jika ada data biaya nyata. Persentase ROI
+   tidak bergantung nilai ini.
 5. **TP/FN/FP ROI dihitung dari validasi walk-forward, bukan LOFO.** Alasannya untuk mencegah pelatihan memakai data
    masa depan; laporan menandai ini sebagai perbedaan metode dari dokumen. ROI dihitung per tahun sebagai
    penghematan terhadap strategi reaktif atau preventif dibagi biaya sistem tahunan. Sumbernya status Merah sistem

@@ -128,6 +128,20 @@ def ub(v, digits=2):
     return f"{sign}{num(abs(v), digits)} UB"
 
 
+# Konversi ilustratif UB ke rupiah. Rumus dan tabel asumsi tetap dalam UB; persentase ROI tidak bergantung nilai ini.
+RUPIAH_PER_UB = 50_000_000
+
+
+def rp(v_ub):
+    """Nilai dalam UB ditampilkan sebagai rupiah (miliar atau juta)."""
+    value = v_ub * RUPIAH_PER_UB
+    sign = "-" if value < 0 else ""
+    value = abs(value)
+    if value >= 1e9:
+        return f"{sign}Rp {num(value / 1e9, 2)} miliar"
+    return f"{sign}Rp {num(value / 1e6, 0)} juta"
+
+
 METHOD_NAMES = {
     "RandomForest baseline (0,5)": "Baseline Random Forest",
     "XGBoost baseline (0,5)": "Baseline XGBoost",
@@ -803,6 +817,10 @@ def write_report(v):
         "biaya_downtime_per_jam", "biaya_perbaikan_darurat", "biaya_penggantian_preventif",
         "biaya_perbaikan_terencana", "biaya_inspeksi", "biaya_sistem",
     }
+    params_rp = [
+        (rp(x) + ("/jam" if key == "biaya_downtime_per_jam" else "/tahun" if key == "biaya_sistem" else "")) if key in monetary else "-"
+        for key, x in zip(param_keys, params["Dasar"])
+    ]
     for col in ("Batas rendah", "Dasar", "Batas tinggi"):
         params[col] = [
             f"{num(x * 100, 0)}%" if key == "kegagalan_lolos_preventif"
@@ -810,6 +828,20 @@ def write_report(v):
             else num(x, 2 if key in {"kegagalan_per_unit_tahun", "downtime_jam_per_kegagalan"} else 0)
             for key, x in zip(param_keys, params[col])
         ]
+    params["Dasar dalam rupiah"] = params_rp
+    roi_rp_show = pd.DataFrame(
+        {
+            "Skenario": roi_table["skenario"],
+            "Reaktif/tahun": roi_table["biaya_reaktif_per_tahun"].map(rp),
+            "Preventif/tahun": roi_table["biaya_preventif_per_tahun"].map(rp),
+            "Prediktif/tahun": roi_table["biaya_prediktif_per_tahun"].map(rp),
+            "Hemat vs reaktif/tahun": roi_table["penghematan_vs_reaktif_per_tahun"].map(rp),
+            "Hemat vs preventif/tahun": roi_table["penghematan_vs_preventif_per_tahun"].map(rp),
+        }
+    )
+    low_thr, high_thr = min(v["chosen"]), max(v["chosen"])
+    full_hit = curve[curve["kejadian_mei_agu"] == curve["kejadian_mei_agu"].max()]
+    quiet = full_hit[full_hit["alarm_palsu"] == full_hit["alarm_palsu"].min()]["ambang"]
     roi_show = pd.DataFrame(
         {
             "Skenario": roi_table["skenario"],
@@ -860,7 +892,9 @@ pakai (Remaining Useful Life, RUL). Hasil utama, diukur dengan validasi walk-for
   MAE semua baris didominasi menit sehat dan tidak membuktikan kemampuan prediksi dini.
 - {passed} dari {len(targets)} target metrik tercapai.
 - Pada nilai dasar, ROI prediktif adalah {num(dasar['roi_vs_reaktif_persen'], 1)}% terhadap reaktif dan
-  {num(dasar['roi_vs_preventif_persen'], 1)}% terhadap preventif, berdasarkan biaya tahunan dalam UB.
+  {num(dasar['roi_vs_preventif_persen'], 1)}% terhadap preventif, berdasarkan biaya tahunan dalam UB. Dengan ilustrasi
+  1 UB = Rp {num(RUPIAH_PER_UB / 1e6, 0)} juta, penghematan per unit APU per tahun sekitar {rp(dasar['penghematan_vs_reaktif_per_tahun'])} terhadap reaktif dan
+  {rp(dasar['penghematan_vs_preventif_per_tahun'])} terhadap preventif.
   ROI terhadap reaktif positif pada: {', '.join(positive) if positive else 'tidak ada skenario'}.
 - Insight terpenting: setiap kegagalan resmi didahului kejadian kecil dalam 2-7 hari, sehingga kejadian kecil layak
   dijadikan pemicu inspeksi.
@@ -1057,6 +1091,21 @@ kegagalan resmi selama {num(OBSERVED_MONTHS, 0)} bulan pada satu unit ({num(FAIL
 Durasi downtime diproksikan dengan rata-rata lama interval label 4 kegagalan ({num(DOWNTIME_HOURS_PER_FAILURE, 2)} jam),
 bukan catatan downtime operasional terverifikasi. Ganti kedua nilai ini dengan data operasional bila tersedia.
 
+**Konversi ke rupiah (ilustrasi).** Satu UB diasumsikan setara **Rp {num(RUPIAH_PER_UB / 1e6, 0)} juta**. Acuannya, harga satu unit
+kompresor udara kereta berada di kisaran €8.500-11.000 per unit (sekitar Rp 150-210 juta) [4]. Perbaikan terencana
+(ganti katup, seal, filter, atau bearing ditambah tenaga teknisi) diperkirakan sekitar sepertiga harga unit, sehingga
+1 UB ≈ Rp {num(RUPIAH_PER_UB / 1e6, 0)} juta, dan perbaikan darurat (3 UB ≈ Rp {num(3 * RUPIAH_PER_UB / 1e6, 0)} juta) kurang lebih setara penggantian
+unit. Porsi sepertiga adalah asumsi tim, dan sumber harga unit tidak menyebut tahun maupun status unit (baru atau
+rekondisi). Sebagai pembanding skala, kontrak suku cadang KAI Commuter bernilai Rp 734 miliar untuk tiga tahun [5].
+Nilai rupiah hanya memberi gambaran nominal: rumus dan tabel asumsi tetap dalam UB, dan persentase ROI tidak berubah
+berapa pun nilai rupiah per UB.
+
+**Biaya downtime.** Biaya downtime (0,5 UB/jam ≈ {rp(0.5)}/jam pada nilai dasar) mencakup kehilangan pendapatan selama
+rangkaian tidak beroperasi, biaya operasional yang tetap berjalan (kru, energi, rangkaian pengganti), serta biaya
+gangguan layanan seperti pengalihan perjalanan atau kompensasi penumpang [6]. Biaya perbaikan tidak termasuk di sini
+karena sudah dihitung terpisah sebagai perbaikan darurat. Nilai per jam adalah asumsi karena data biaya downtime
+rangkaian kereta tidak tersedia untuk publik; sensitivitasnya diuji pada rentang 0,2-1,5 UB/jam (bagian 7).
+
 Metrik deteksi diambil dari validasi walk-forward sistem hybrid final, bukan LOFO: recall kegagalan resmi {detection['recall_resmi']:.0%}
 dan {num(detection['alarm_palsu_per_minggu'], 2)} episode alarm Merah palsu per minggu per unit. Walk-forward dipakai
 untuk menghindari pelatihan dengan data masa depan; ini merupakan perbedaan metode dari LOFO yang disebut dokumen.
@@ -1075,6 +1124,10 @@ Perhitungan per tahun mengikuti rumus ruang lingkup:
 ### 6.2 Hasil
 
 {md_table(roi_show)}
+
+Dalam rupiah (1 UB = Rp {num(RUPIAH_PER_UB / 1e6, 0)} juta, per unit APU per tahun):
+
+{md_table(roi_rp_show)}
 
 ![Simulasi ROI]({v['chart_roi']})
 
@@ -1111,8 +1164,9 @@ Kurva ini dihitung pada data uji, sehingga hanya menggambarkan trade-off dan tid
    daripada peningkatan model.
 2. Pada nilai dasar, ROI terhadap reaktif tetap positif selama alarm Merah tanpa kegagalan resmi di bawah {num(be.loc['Alarm Merah tanpa kegagalan resmi per minggu'], 2)} per minggu per unit
    (saat ini {num(detection['alarm_palsu_per_minggu'], 2)}).
-3. Ambang 0,75-0,90 memberi alarm palsu paling sedikit tanpa kehilangan kejadian. Ambang yang dipilih model berada
-   di kisaran 0,30-0,85, sehingga ada ruang perbaikan jika data latih bertambah.
+3. Pada data uji, ambang {num(quiet.min(), 2)}-{num(quiet.max(), 2)} memberi alarm palsu paling sedikit tanpa kehilangan kejadian. Ambang yang
+   dipilih validasi dalam berada di kisaran {num(low_thr, 2)}-{num(high_thr, 2)}. Kurva ini dihitung pada data uji, jadi tidak dipakai untuk
+   memilih ambang.
 4. Karena recall kegagalan resmi sudah 100% pada sampel kecil ini, model belum membuktikan lead-time yang memberi
    penghematan. ROI tetap simulasi bersyarat, bukan bukti kelayakan investasi.
 
@@ -1198,12 +1252,25 @@ Model RUL:
 
 ## Daftar Pustaka
 
-- Davari, N., Veloso, B., Ribeiro, R. P., Pereira, P. M., & Gama, J. (2021). Predictive maintenance based on anomaly
+- [1] Davari, N., Veloso, B., Ribeiro, R. P., Pereira, P. M., & Gama, J. (2021). Predictive maintenance based on anomaly
   detection using deep learning for air production unit in the railway industry. *IEEE DSAA 2021*.
-- Veloso, B., Ribeiro, R. P., Gama, J., & Pereira, P. M. (2022). The MetroPT dataset for predictive maintenance.
+- [2] Veloso, B., Ribeiro, R. P., Gama, J., & Pereira, P. M. (2022). The MetroPT dataset for predictive maintenance.
   *Scientific Data*, 9, 764.
-- Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). Damage propagation modeling for aircraft engine run-to-failure
+- [3] Saxena, A., Goebel, K., Simon, D., & Eklund, N. (2008). Damage propagation modeling for aircraft engine run-to-failure
   simulation. *PHM 2008*.
+
+Sumber asumsi biaya (bagian 6.1):
+
+- [4] Daftar harga komponen kompresor tipe Knorr-Bremse (spreadsheet publik, tanpa tahun).
+  https://docs.google.com/spreadsheets/d/1B2FjPw758KyklRspP4W3rqZNrt0mtDM3/edit
+- [5] PwC Indonesia (2024). KCI, JRTM cooperate to procure Commuter Line spare parts for Rp734 billion.
+  https://pwc.com/id/en/media-centre/infrastructure-news/march-2024/kci-jrtm-cooperate-to-procure-commuter-line-spare-parts-for-rp73.html
+- [6] Kementerian Perhubungan (2019). Peraturan Menteri Perhubungan No. PM 63 Tahun 2019 tentang Standar Pelayanan
+  Minimal Angkutan Orang dengan Kereta Api (kompensasi keterlambatan; berlaku untuk KA antarkota).
+- Bisnis.com (2023). KAI Commuter mulai retrofit 19 trainset KRL, biayanya sentuh Rp2,2 triliun.
+  https://ekonomi.bisnis.com/read/20231104/98/1711058/kai-commuter-mulai-retrofit-19-trainset-krl-biayanya-sentuh-rp22-triliun
+- Magazine Industry USA. Replacement of compressed air production units on TGV PSE trains (interval perawatan kompresor).
+  https://magazine-industry-usa.com/news/1108-replacement-of-compressed-air-production-units-on-tgv-pse-trains
 
 ## Lampiran: Berkas Proyek
 

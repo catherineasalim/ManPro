@@ -13,8 +13,8 @@ Isi
   4. Analisis sensitivitas: tornado parameter ROI, titik impas, dan kurva ambang
   5. Insight pola degradasi: lintasan sensor menjelang 4 kegagalan, kejadian prekursor, fitur penting
 
-Angka kinerja yang dipakai ROI berasal dari status sistem hybrid pada validasi walk-forward
-(output/hybrid/status_walkforward.parquet), bukan dari model yang dilatih ulang pada seluruh data.
+Angka kinerja yang dipakai ROI berasal dari status sistem hybrid final pada validasi walk-forward
+(kolom status_final di output/model/prediksi_walkforward.parquet), bukan dari model yang dilatih ulang pada seluruh data.
 """
 import joblib
 import matplotlib
@@ -655,9 +655,9 @@ def importance(bundle):
     rows = []
     for name, (model, _) in zip(bundle["anomaly_member_names"], bundle["anomaly_members"]):
         values = model.feature_importances_
-        rows.append(pd.Series(values / values.sum(), index=FEATURES, name=f"anomali_{name}"))
+        rows.append(pd.Series(values / values.sum(), index=bundle.get("anomaly_features", FEATURES), name=f"anomali_{name}"))
     rul = bundle["rul_model"].feature_importances_
-    rows.append(pd.Series(rul / rul.sum(), index=FEATURES, name="rul_xgb"))
+    rows.append(pd.Series(rul / rul.sum(), index=bundle.get("rul_features", FEATURES), name="rul_xgb"))
     table = pd.concat(rows, axis=1)
     table["anomali"] = table[[c for c in table.columns if c.startswith("anomali_")]].mean(axis=1)
     return table[["anomali", "rul_xgb"]]
@@ -666,7 +666,7 @@ def importance(bundle):
 def importance_chart(table):
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for ax, column, title, color in ((axes[0], "anomali", "Model anomali final", COLORS["s1"]), (axes[1], "rul_xgb", "Model RUL final", COLORS["s2"])):
-        top = table[column].sort_values(ascending=False).head(10).iloc[::-1]
+        top = table[column].dropna().sort_values(ascending=False).head(10).iloc[::-1]
         ax.barh(top.index, top.to_numpy(), color=color, height=0.6)
         ax.set_title(f"{title}: 10 fitur terpenting")
         ax.set_xlabel("Porsi kepentingan")
@@ -682,7 +682,6 @@ def main():
     ensure_dirs()
     train_table, online = load_tables()
     pred = pd.read_parquet(MODEL_DIR / "prediksi_walkforward.parquet")
-    hybrid = pd.read_parquet(OUTPUT_DIR / "hybrid" / "status_walkforward.parquet")
     bundle = joblib.load(FINAL_DIR / "model_final.joblib")
 
     anomaly, rul, targets, choices, chart_models = model_summary()
@@ -698,7 +697,7 @@ def main():
     chart_fp = fp_chart(fp_red, fp_warn)
     conf = confusion(pred)
 
-    detection = detection_inputs(hybrid["status"])
+    detection = detection_inputs(pred["status_final"])  # Sistem hybrid final (model terkalibrasi), walk-forward.
     roi_table = roi_tables(detection)
     tornado_table, base_roi = tornado(detection)
     breakeven = break_even(detection)
@@ -956,9 +955,13 @@ Target ditetapkan setelah melihat hasil baseline, sebelum model final dijalankan
 Baseline dan model final tunggal hanya mendeteksi 12 kejadian, karena April belum memiliki label sehingga tidak ada
 model supervised. Sistem hybrid menutup celah ini dengan IsolationForest, sehingga F1 tetap terdeteksi.
 
-Dibanding sistem hybrid versi awal, sistem final mendeteksi kejadian yang sama ({old_red['kejadian']}), dengan alarm palsu
-{red['alarm_palsu']} berbanding {old_red['alarm_palsu']}. Versi awal memakai 9 fitur yang dipilih setelah melihat data uji, sehingga angkanya
-sedikit lebih optimistis. Kelebihan versi final: skornya terkalibrasi dan seluruh pilihannya dapat dipertanggungjawabkan.
+Dibanding sistem hybrid versi awal (HGB, ambang tetap 0,5), sistem final mendeteksi kejadian yang sama
+({old_red['kejadian']} berbanding {red['kejadian']}), dengan alarm palsu {red['alarm_palsu']} berbanding {old_red['alarm_palsu']}.
+Model supervised final memakai 9 fitur proses yang sama dengan HGB (duty, siklus, suhu oli, arus, tekanan). Versi dengan
+51 fitur menghasilkan 10 alarm palsu karena ikut mempelajari fluktuasi sensor sesaat. Catatan kejujuran: keputusan
+memakai 9 fitur, baik di HGB maupun di model final, diambil setelah membandingkan hasil walk-forward yang sama, sehingga
+angka alarm palsu ini sedikit optimistis dan perlu dikonfirmasi pada data sesudah Agustus 2020. Pemilihan model,
+kalibrasi, dan ambang tiap bulan tetap dibuat hanya dari data latih.
 
 Model yang terpilih tiap bulan:
 

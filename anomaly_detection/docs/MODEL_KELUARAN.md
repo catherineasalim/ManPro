@@ -31,23 +31,33 @@ Butuh `xgboost` selain paket di README utama: `pip install xgboost`.
 | | Baseline terbaik | Final |
 |---|---|---|
 | Anomali, kejadian terdeteksi (Merah) | 12/16 (RF/XGBoost, April tanpa model) | 14/16, 4/4 kegagalan resmi |
-| Anomali, alarm palsu Merah | 2 (RF) - 7 (XGBoost) | 10 (0,46/minggu) |
-| Anomali, ECE (kalibrasi) | 0,0021 (skor mentah) | 0,0030 |
+| Anomali, alarm palsu Merah | 2 (RF) - 7 (XGBoost) | 4 (0,18/minggu); hybrid versi awal: 5 |
+| Anomali, Brier skor Mei-Agu | 0,0019 (XGBoost) | 0,0013 |
+| Anomali, ECE (kalibrasi) | 0,0021 (skor mentah) | 0,0011 |
 | RUL, MAE semua baris | 8,7 jam (RF) | 12,1 jam |
-| RUL, MAE pra-failure (0 < RUL < 72 jam) | 33,2 jam (XGBoost) - 35,1 jam (RF) | 33,9 jam |
-| RUL, recall tahap Critical | 0,00 | 0,78 |
+| RUL, MAE pra-failure (0 < RUL < 72 jam) | 33,2 jam (XGBoost) - 35,1 jam (RF) | 34,7 jam |
+| RUL, recall tahap Critical | 0,00 | 0,75 |
 
-4 dari 9 target lulus. Hasil ini memakai validasi maju-waktu yang diperbaiki. Pada jendela pra-failure, model final
-(33,9 jam MAE) setara dengan baseline (33,2-35,1 jam) dan hanya sedikit mengungguli tebakan naif RUL tetap 72 jam
-(38,2 jam). Tidak ada kegagalan yang diperingatkan sebelum mulai, karena sensor sebelum F1-F3 tidak menunjukkan gejala.
-Keunggulan model final ada pada tahap Critical (recall 0,78), yang berasal dari override Failure model anomali.
-MAE semua baris didominasi menit sehat. Dengan hanya empat kegagalan resmi, RUL belum layak dipakai sebagai janji
-penggantian 24-72 jam sebelumnya. Cakupan interval pra-failure hanya 25%.
+6 dari 9 target lulus; semua target anomali lulus, tiga target RUL tidak.
+
+Anomali: model supervised final memakai 9 fitur proses yang sama dengan HGB di sistem hybrid. Dengan 51 fitur, alarm
+palsu Merah 10; dengan 9 fitur 4, deteksi sama (14/16). Keputusan 9 fitur ini diambil setelah membandingkan hasil
+walk-forward yang sama (seperti pilihan 9 fitur HGB tim), jadi angkanya sedikit optimistis dan perlu dikonfirmasi pada
+data sesudah Agustus 2020.
+
+RUL: pada jendela pra-failure, model final (34,7 jam MAE) setara dengan baseline (33,2-35,1 jam) dan hanya sedikit
+mengungguli tebakan naif RUL tetap 72 jam (38,2 jam). Tidak ada kegagalan yang diperingatkan sebelum mulai, karena
+sensor sebelum F1-F3 tidak menunjukkan gejala. Percobaan tambahan tidak mengubah ini: override dari status Merah hybrid
+memberi hasil yang sama, dan fitur riwayat 72 jam / 7 hari hanya memperbaiki MAE semua baris (12,1 menjadi 9,1 jam)
+sementara MAE pra-failure memburuk (35,0 jam), sehingga tidak dipakai. Keunggulan model final ada pada tahap Critical
+(recall 0,75), yang berasal dari override Failure model anomali. Dengan hanya empat kegagalan resmi, RUL belum layak
+dipakai sebagai janji penggantian 24-72 jam sebelumnya. Cakupan interval pra-failure hanya 23,5%.
 
 ## Cara kerja model final
 
 Anomali (per bulan uji):
-1. Validasi dalam GroupKFold per kelompok kejadian (kejadian berjarak < 3 hari satu kelompok).
+1. Validasi dalam GroupKFold per kelompok kejadian (kejadian berjarak < 3 hari satu kelompok). Fitur: 9 fitur proses
+   (`ANOMALY_FEATURES`, sama dengan HGB).
 2. Pilih kandidat: XGBoost dangkal, XGBoost sedang, Random Forest, atau ensemble ketiganya.
 3. Kalibrasi isotonic dari skor out-of-fold.
 4. Ambang dengan biaya terkecil: 10 x kejadian terlewat + alarm palsu (`--cost-ratio`).
@@ -105,4 +115,6 @@ Model untuk data sesudah Agustus 2020. Pakai lewat `predict.score_table`. Kunci 
    proksi yang harus diganti bila data operasional tersedia.
 5. **TP/FN/FP ROI dihitung dari validasi walk-forward, bukan LOFO.** Alasannya untuk mencegah pelatihan memakai data
    masa depan; laporan menandai ini sebagai perbedaan metode dari dokumen. ROI dihitung per tahun sebagai
-   penghematan terhadap strategi reaktif atau preventif dibagi biaya sistem tahunan.
+   penghematan terhadap strategi reaktif atau preventif dibagi biaya sistem tahunan. Sumbernya status Merah sistem
+   hybrid final (`status_final` di `prediksi_walkforward.parquet`). FP di ROI adalah setiap episode Merah yang tidak
+   menyentuh kegagalan resmi, termasuk alarm pada kejadian kecil, karena masing-masing tetap memicu satu inspeksi.

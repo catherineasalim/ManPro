@@ -105,6 +105,7 @@ def frame_payload(timestamp: pd.Timestamp, row: pd.Series) -> dict:
         "status": str(row.get("status_final") or "Abu-abu"),
         "trigger": json_value(row.get("pemicu_final")),
         "probability": probability,
+        "threshold": json_value(row.get("ambang_anomali")),
         "rul_hours": json_value(row.get("rul_pred")),
         "rul_lower": json_value(row.get("rul_bawah")),
         "rul_upper": json_value(row.get("rul_atas")),

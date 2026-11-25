@@ -1,72 +1,9 @@
 from __future__ import annotations
 
 from copy import deepcopy
-import json
 
-from app.core.config import METADATA_PATH
+from app.core.roi_defaults import DETECTION_DEFAULTS, RUPIAH_PER_UB, SCENARIOS
 from app.schemas.models import ROIRequest, ROIResponse, ROIScenario
-
-
-FAILURES_PER_YEAR = 4 / 7 * 12
-FAILURE_DURATION_HOURS = 21.87
-def _detection_defaults() -> dict[str, float]:
-    fallback = {"official_recall": 1.0, "false_red_alarms_per_week": 0.458}
-    if not METADATA_PATH.exists():
-        return fallback
-    try:
-        metadata = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
-        rows = metadata.get("walk_forward", {}).get("anomali", [])
-        row = next((item for item in rows if item.get("metode") == "Hybrid final Merah"), None)
-        if row is None:
-            return fallback
-        numerator, denominator = str(row.get("resmi", "4/4")).split("/", maxsplit=1)
-        return {
-            "official_recall": float(numerator) / float(denominator),
-            "false_red_alarms_per_week": float(row.get("palsu_per_minggu", fallback["false_red_alarms_per_week"])),
-        }
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
-        return fallback
-
-
-DETECTION_DEFAULTS = _detection_defaults()
-SCENARIOS = {
-    "Batas rendah": {
-        "kegagalan_per_unit_tahun": FAILURES_PER_YEAR,
-        "downtime_jam_per_kegagalan": FAILURE_DURATION_HOURS,
-        "biaya_downtime_per_jam": 0.2,
-        "biaya_perbaikan_darurat": 2.0,
-        "biaya_perbaikan_terencana": 0.8,
-        "biaya_inspeksi": 0.05,
-        "interval_penggantian_bulan": 12.0,
-        "biaya_penggantian_preventif": 1.0,
-        "kegagalan_lolos_preventif": 0.1,
-        "biaya_sistem": 0.5,
-    },
-    "Dasar": {
-        "kegagalan_per_unit_tahun": FAILURES_PER_YEAR,
-        "downtime_jam_per_kegagalan": FAILURE_DURATION_HOURS,
-        "biaya_downtime_per_jam": 0.5,
-        "biaya_perbaikan_darurat": 3.0,
-        "biaya_perbaikan_terencana": 1.0,
-        "biaya_inspeksi": 0.1,
-        "interval_penggantian_bulan": 6.0,
-        "biaya_penggantian_preventif": 1.2,
-        "kegagalan_lolos_preventif": 0.3,
-        "biaya_sistem": 1.0,
-    },
-    "Batas tinggi": {
-        "kegagalan_per_unit_tahun": FAILURES_PER_YEAR,
-        "downtime_jam_per_kegagalan": FAILURE_DURATION_HOURS,
-        "biaya_downtime_per_jam": 1.5,
-        "biaya_perbaikan_darurat": 5.0,
-        "biaya_perbaikan_terencana": 1.5,
-        "biaya_inspeksi": 0.2,
-        "interval_penggantian_bulan": 3.0,
-        "biaya_penggantian_preventif": 2.0,
-        "kegagalan_lolos_preventif": 0.6,
-        "biaya_sistem": 3.0,
-    },
-}
 
 
 def calculate(costs: dict[str, float]) -> dict[str, float]:
@@ -168,6 +105,7 @@ def calculate_roi(request: ROIRequest) -> ROIResponse:
 
     return ROIResponse(
         detection_basis=DETECTION_DEFAULTS,
+        rupiah_per_ub=RUPIAH_PER_UB,
         selected=selected,
         scenarios=all_scenarios,
         sensitivity=sensitivity,

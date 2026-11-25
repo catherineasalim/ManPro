@@ -4,6 +4,8 @@ Dashboard demo untuk memantau data telemetri kompresor Metro do Porto, mengekspl
 
 Dashboard berjalan lokal dan menggunakan **replay data historis**. Tidak ada koneksi sensor real-time, unggah CSV, atau pengiriman email/WhatsApp sungguhan.
 
+**[Baca ALUR.md](ALUR.md)** untuk penjelasan sederhana tentang peran folder, alur data dan model, cara kerja replay, serta asal keluaran dashboard.
+
 ## Isi dashboard
 
 Navigasi dashboard terdiri dari tujuh halaman:
@@ -16,7 +18,7 @@ Navigasi dashboard terdiri dari tujuh halaman:
 6. **Log insiden** — episode alarm beserta durasi, pemicu, dan cuplikan sensor.
 7. **Biaya & ROI** — kalkulator asumsi biaya reaktif, preventif, dan prediktif, beserta sensitivitas dan titik impas.
 
-Kontrol replay di bagian atas halaman menyediakan play/pause, pemilihan timestamp, dan kecepatan 1×, 10×, atau 60×. Satu detik waktu demo memajukan replay masing-masing satu, sepuluh, atau enam puluh menit.
+Kontrol replay di bagian atas halaman menyediakan play/pause, pemilihan timestamp, dan kecepatan 1×, 10×, 60×, 200×, 300×, 500×, atau 1000×. Angka kecepatan menunjukkan berapa menit replay yang maju setiap detik waktu demo.
 
 ## Sumber data dan batas model
 
@@ -26,13 +28,15 @@ Backend membaca artefak yang sudah ada di repo:
 | --- | --- |
 | `anomaly_detection/output/dataprep/dataset_online_1min.parquet` | Nilai sensor dan status kualitas data per menit |
 | `anomaly_detection/output/model/prediksi_walkforward.parquet` | Status, pemicu, skor anomali terkalibrasi, dan RUL dari validasi maju-waktu |
-| `anomaly_detection/output/model/final/metadata.json` | Metrik walk-forward untuk asumsi deteksi pada kalkulator ROI |
+| `anomaly_detection/output/model/final/metadata.json` | Jenis model, fitur, dan metrik walk-forward untuk ringkasan model |
 
 Prediksi *walk-forward* dipakai untuk replay karena model final telah dilatih menggunakan data Februari–Agustus 2020. Memutar ulang rentang yang sama dengan model final akan memberi evaluasi yang terlalu optimistis. Rentang replay mengikuti timestamp prediksi yang tersedia; nilai RUL kosong tetap ditampilkan sebagai belum tersedia.
 
-Skor anomali adalah sinyal model yang dikalibrasi dari jumlah kejadian yang terbatas. RUL dibatasi hingga 72 jam, dan validasi belum membuktikan kemampuan memberi peringatan 24–72 jam sebelum kegagalan. Tampilkan RUL sebagai perkiraan tahap dan rentang, bukan waktu penggantian yang pasti.
+Model anomali final adalah ensemble Random Forest dan dua konfigurasi XGBoost, memakai 9 fitur proses dan kalibrasi isotonic. Skor ensemble merupakan salah satu masukan status hybrid; status Merah tidak ditentukan oleh skor itu saja. Pada walk-forward, status hybrid mendeteksi 14/16 kejadian termasuk 4/4 kegagalan resmi, dengan 4 alarm Merah palsu atau 0,18 per minggu. ECE 0,0011 adalah metrik kalibrasi model ensemble. Ambang bulanan pada replay adalah April 1,00 (model supervised belum aktif), Mei 0,45, Juni 0,90, Juli 0,65, dan Agustus 0,70.
 
-ROI menggunakan unit biaya UB dan asumsi skenario yang sama dengan analisis proyek. Metrik deteksi berasal dari hasil walk-forward dan ditampilkan sebagai dasar perhitungan. Biaya dapat diubah di dashboard; angka yang dihasilkan tetap simulasi, bukan biaya operasional aktual.
+RUL memakai XGBoost sedang yang dipilih melalui validasi expanding-window. MAE pra-kegagalan 34,7 jam dan recall tahap Critical 0,75; 6 dari 9 target proyek tercapai. RUL dibatasi hingga 72 jam, dan validasi belum membuktikan kemampuan memberi peringatan 24–72 jam sebelum kegagalan. Tampilkan RUL sebagai perkiraan tahap dan rentang, bukan waktu penggantian yang pasti.
+
+ROI memakai asumsi deteksi dan skenario biaya yang disalin dari laporan terbaru ke konfigurasi dashboard di `backend/app/core/roi_defaults.py`. Laporan menghitung 0,78 alarm Merah palsu per minggu untuk ROI karena definisinya juga mencakup episode Merah pada kejadian kecil; angka 0,18 di ringkasan walk-forward menghitung alarm palsu dengan definisi yang lebih sempit. Kalkulator menampilkan biaya dalam UB dan ilustrasi rupiah dengan asumsi 1 UB = Rp50 juta. Pada skenario dasar, ROI acuan laporan adalah 8.365,6% terhadap reaktif dan 1.916,6% terhadap preventif. Jika asumsi laporan berubah, konfigurasi dashboard perlu disinkronkan. Nilai rupiah adalah ilustrasi, bukan biaya operasional aktual.
 
 ## Prasyarat
 
@@ -119,7 +123,7 @@ Semua endpoint berada di bawah `/api`.
 | Method | Endpoint | Fungsi |
 | --- | --- | --- |
 | `GET` | `/health` | Status API dan ketersediaan data |
-| `GET` | `/replay/metadata` | Rentang waktu, jumlah baris, sinyal tersedia |
+| `GET` | `/replay/metadata` | Rentang waktu, sinyal tersedia, ringkasan model, metrik walk-forward, dan ambang per bulan |
 | `GET` | `/replay/frame?timestamp=...` | Status, sensor, skor, dan RUL pada satu menit |
 | `GET` | `/telemetry?start=...&end=...&signals=TP2&signals=TP3` | Data grafik dengan batas jumlah titik |
 | `GET` | `/alarms?through=...` | Episode alarm hingga posisi replay |

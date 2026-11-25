@@ -7,6 +7,32 @@ export interface ReplayMetadata {
   interval: string;
   signals: string[];
   statuses: Status[];
+  model_summary: ModelSummary | null;
+}
+
+export interface MonthlyThreshold {
+  month: string;
+  threshold: number | null;
+  supervised_active: boolean;
+}
+
+export interface ModelSummary {
+  anomaly_model: string | null;
+  anomaly_members: string[];
+  anomaly_calibration: string | null;
+  anomaly_threshold: number | null;
+  anomaly_features: string[];
+  hybrid_events_detected: string | null;
+  hybrid_official_detected: string | null;
+  hybrid_false_alarm_episodes: number | null;
+  hybrid_false_alarms_per_week: number | null;
+  calibrated_ece: number | null;
+  rul_model: string | null;
+  rul_mae_pre_failure_hours: number | null;
+  rul_critical_recall: number | null;
+  targets_passed: number | null;
+  targets_total: number | null;
+  monthly_thresholds: MonthlyThreshold[];
 }
 
 export interface Frame {
@@ -14,6 +40,7 @@ export interface Frame {
   status: Status;
   trigger: string | null;
   probability: number | null;
+  threshold: number | null;
   rul_hours: number | null;
   rul_lower: number | null;
   rul_upper: number | null;
@@ -91,6 +118,7 @@ export interface ROIScenario {
 
 export interface ROIResponse {
   detection_basis: { official_recall: number; false_red_alarms_per_week: number };
+  rupiah_per_ub: number;
   selected: ROIScenario;
   scenarios: ROIScenario[];
   sensitivity: { parameter: string; nilai: number; roi_minus_30: number; roi_plus_30: number; rentang: number }[];

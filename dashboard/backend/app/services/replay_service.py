@@ -5,7 +5,7 @@ from datetime import datetime
 import pandas as pd
 
 from app.core.config import SENSOR_FIELDS
-from app.schemas.models import FrameResponse, ReplayMetadata, TelemetryPoint, TelemetryResponse
+from app.schemas.models import FrameResponse, ModelSummary, MonthlyThreshold, ReplayMetadata, TelemetryPoint, TelemetryResponse
 from app.services.data_store import DataBundle, frame_payload, json_value, rul_stage
 
 
@@ -22,12 +22,54 @@ def replay_metadata(bundle: DataBundle) -> ReplayMetadata:
         raise ValueError("Tidak ada timestamp dengan prediksi walk-forward.")
     start, end = predictions.index.min(), predictions.index.max()
     available = bundle.frame.loc[start:end]
+    metadata = bundle.metadata
+    anomaly = metadata.get("anomali", {})
+    rul = metadata.get("rul", {})
+    walk_forward = metadata.get("walk_forward", {})
+    anomaly_rows = walk_forward.get("anomali", [])
+    hybrid_row = next((row for row in anomaly_rows if row.get("metode") == "Hybrid final Merah"), {})
+    calibrated_row = next((row for row in anomaly_rows if row.get("metode") == "Model final terkalibrasi (ambang teroptimasi)"), {})
+    target_rows = walk_forward.get("target", [])
+    threshold_rows = []
+    thresholds = available.get("ambang_anomali")
+    if thresholds is not None:
+        for month, month_frame in available.groupby(available.index.to_period("M"), sort=True):
+            month_thresholds = pd.to_numeric(month_frame.get("ambang_anomali"), errors="coerce").dropna()
+            active = bool(month_frame.get("model_aktif", pd.Series(False, index=month_frame.index)).fillna(False).any())
+            threshold_rows.append(MonthlyThreshold(
+                month=month.strftime("%Y-%m"),
+                threshold=float(month_thresholds.iloc[0]) if not month_thresholds.empty else None,
+                supervised_active=active,
+            ))
+
+    def fraction(value):
+        return str(value) if value else None
+
+    summary = ModelSummary(
+        anomaly_model=anomaly.get("model"),
+        anomaly_members=anomaly.get("members", []),
+        anomaly_calibration=anomaly.get("kalibrasi"),
+        anomaly_threshold=anomaly.get("ambang_terkalibrasi"),
+        anomaly_features=anomaly.get("fitur", []),
+        hybrid_events_detected=fraction(hybrid_row.get("kejadian")),
+        hybrid_official_detected=fraction(hybrid_row.get("resmi")),
+        hybrid_false_alarm_episodes=hybrid_row.get("alarm_palsu"),
+        hybrid_false_alarms_per_week=hybrid_row.get("palsu_per_minggu"),
+        calibrated_ece=calibrated_row.get("ece"),
+        rul_model=rul.get("model"),
+        rul_mae_pre_failure_hours=walk_forward.get("rul", {}).get("mae_pra_failure"),
+        rul_critical_recall=walk_forward.get("rul", {}).get("recall_critical"),
+        targets_passed=sum(row.get("status") == "LULUS" for row in target_rows),
+        targets_total=len(target_rows),
+        monthly_thresholds=threshold_rows,
+    )
     return ReplayMetadata(
         start=start.to_pydatetime(),
         end=end.to_pydatetime(),
         rows=len(available),
         signals=[name for name in SENSOR_FIELDS if name in available.columns],
         statuses=["Hijau", "Kuning", "Merah", "Abu-abu"],
+        model_summary=summary,
     )
 
 

@@ -12,6 +12,31 @@ class HealthResponse(BaseModel):
     detail: str | None = None
 
 
+class MonthlyThreshold(BaseModel):
+    month: str
+    threshold: float | None = None
+    supervised_active: bool
+
+
+class ModelSummary(BaseModel):
+    anomaly_model: str | None = None
+    anomaly_members: list[str] = Field(default_factory=list)
+    anomaly_calibration: str | None = None
+    anomaly_threshold: float | None = None
+    anomaly_features: list[str] = Field(default_factory=list)
+    hybrid_events_detected: str | None = None
+    hybrid_official_detected: str | None = None
+    hybrid_false_alarm_episodes: int | None = None
+    hybrid_false_alarms_per_week: float | None = None
+    calibrated_ece: float | None = None
+    rul_model: str | None = None
+    rul_mae_pre_failure_hours: float | None = None
+    rul_critical_recall: float | None = None
+    targets_passed: int | None = None
+    targets_total: int | None = None
+    monthly_thresholds: list[MonthlyThreshold] = Field(default_factory=list)
+
+
 class ReplayMetadata(BaseModel):
     start: datetime
     end: datetime
@@ -19,6 +44,7 @@ class ReplayMetadata(BaseModel):
     interval: str = "1 menit"
     signals: list[str]
     statuses: list[str]
+    model_summary: ModelSummary | None = None
 
 
 class FrameResponse(BaseModel):
@@ -26,6 +52,7 @@ class FrameResponse(BaseModel):
     status: str
     trigger: str | None = None
     probability: float | None = None
+    threshold: float | None = None
     rul_hours: float | None = None
     rul_lower: float | None = None
     rul_upper: float | None = None
@@ -90,6 +117,7 @@ class ROIScenario(BaseModel):
 
 class ROIResponse(BaseModel):
     detection_basis: dict[str, float]
+    rupiah_per_ub: int = 50_000_000
     selected: ROIScenario
     scenarios: list[ROIScenario]
     sensitivity: list[dict[str, Any]]

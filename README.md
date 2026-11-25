@@ -10,6 +10,15 @@ The main model is a **hybrid system**:
 
 All code is in [`anomaly_detection/`](anomaly_detection/).
 
+## Documentation
+
+| Dokumentasi | Deskripsi |
+|---|---|
+| [Modul Anomaly Detection](anomaly_detection/README.md) | Struktur folder dan alur kerja pemodelan |
+| [Dashboard](dashboard/README.md) | Fitur dashboard, sumber data, dan cara menjalankan |
+| [Alur Dashboard](dashboard/ALUR.md) | Penjelasan detail alur data, model, replay, dan keluaran |
+| [Laporan Analisis](anomaly_detection/output/model/LAPORAN_ANALISIS.md) | Hasil evaluasi model, RUL, dan simulasi ROI |
+
 ---
 
 ## 1. Get the dataset (not included in this repo)

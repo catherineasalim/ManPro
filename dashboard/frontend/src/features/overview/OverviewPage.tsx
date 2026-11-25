@@ -21,6 +21,7 @@ function getActuator(value: number | boolean | null | undefined) {
 
 export function OverviewPage() {
   const { current, cursor, metadata } = useReplay();
+  const model = metadata?.model_summary;
   const currentTime = formatTimestamp(current?.timestamp ?? cursor);
   const rulDays = current?.rul_hours == null ? null : current.rul_hours / 24;
   const alertText = useMemo(() => {
@@ -47,7 +48,7 @@ export function OverviewPage() {
         <div className="actuator-list"><div className="actuator-row"><span className="actuator-symbol">CMP</span><div><strong>COMP</strong><small>Indikator kompresor</small></div><span className={`actuator-state ${current?.sensors.COMP ? "on" : "off"}`}><i />{getActuator(current?.sensors.COMP as number | boolean | null)}</span></div><div className="actuator-row"><span className="actuator-symbol valve">DV</span><div><strong>DV_eletric</strong><small>Katup elektrik / status beban</small></div><span className={`actuator-state ${Number(current?.sensors.DV_eletric ?? 0) >= 0.5 ? "on" : "off"}`}><i />{getActuator(current?.sensors.DV_eletric as number | boolean | null)}</span></div></div>
       </Panel>
       <Panel title="Ringkasan model" subtitle="Validasi maju-waktu, bukan penilaian pada data latih" action={<Link className="text-link" to="/anomali">Detail model <ArrowRight size={14} /></Link>}>
-        <div className="model-summary"><div className="summary-stat"><span>Deteksi kegagalan resmi</span><strong>4 <small>/ 4</small></strong><span className="summary-hint"><ArrowUpRight size={13} /> Walk-forward</span></div><div className="summary-stat"><span>Alarm Merah palsu</span><strong>10 <small>episode</small></strong><span className="summary-hint muted">0,46 per minggu</span></div><div className="summary-note"><span className="note-mark">i</span><p>RUL belum terbukti memberi peringatan 24–72 jam sebelum kegagalan. Gunakan sebagai indikator tahap risiko.</p></div></div>
+        <div className="model-summary"><div className="summary-stat"><span>Kejadian hybrid terdeteksi</span><strong>{model?.hybrid_events_detected ?? "—"}</strong><span className="summary-hint"><ArrowUpRight size={13} /> Walk-forward</span></div><div className="summary-stat"><span>Kegagalan resmi terdeteksi</span><strong>{model?.hybrid_official_detected ?? "—"}</strong><span className="summary-hint muted">{model?.hybrid_false_alarm_episodes ?? "—"} alarm palsu · {model?.hybrid_false_alarms_per_week == null ? "—" : `${formatNumber(model.hybrid_false_alarms_per_week, 2)} per minggu`}</span></div><div className="summary-note"><span className="note-mark">i</span><p>Anomali: {model?.anomaly_model ?? "model"} terkalibrasi (ECE {model?.calibrated_ece == null ? "—" : formatNumber(model.calibrated_ece, 4)}). RUL belum membuktikan peringatan 24–72 jam sebelum gagal.</p></div></div>
       </Panel>
     </div>
     <div className="overview-footnote"><span><ArrowDownRight size={14} />Data replay dari keluaran walk-forward yang telah tersedia</span><span>Rentang tersedia: {metadata ? `${new Date(metadata.start).toLocaleDateString("id-ID")} – ${new Date(metadata.end).toLocaleDateString("id-ID")}` : "memuat"}</span></div>

@@ -25,9 +25,10 @@ Anomali (per putaran bulan Mei-Agustus; April tanpa label sehingga tetap memakai
   5. Skor terkalibrasi menggantikan HGB di sistem hybrid (hybrid.combine_status), aturan status lain tidak berubah.
 
 RUL (per segmen uji 2-5)
-  1. Validasi dalam leave-one-segment-out di antara segmen latih. Segmen uji 2 hanya punya satu segmen latih,
-     sehingga validasi dalamnya memakai 4 blok waktu berurutan di dalam segmen 1.
-  2. Pilih hiperparameter XGBoost dengan rata-rata MAE semua baris dan MAE jendela degradasi terkecil.
+  1. Validasi dalam expanding-window: segmen latih ke-i divalidasi dengan model dari segmen sebelumnya saja.
+     Segmen uji 2 hanya punya satu segmen latih, sehingga segmen 1 dibagi 4 blok waktu berurutan dan tiap blok
+     divalidasi dengan model dari blok sebelumnya.
+  2. Pilih hiperparameter XGBoost dengan MAE pra-failure (0 < RUL < 72 jam) terkecil.
   3. Kalibrasi interval: conformal split dari residu out-of-fold, terpisah per rentang prediksi (Mondrian),
      target cakupan 80%.
   3b. Kalibrasi titik: isotonic dari prediksi out-of-fold ke RUL nyata (menghapus bias ke bawah pada baris sehat).
@@ -80,6 +81,7 @@ from anomaly_detection.common.hybrid import combine_status, red_alarm, warning_a
 from anomaly_detection.anomali.model_iforest import fit_iforest
 from anomaly_detection.preprocessing.preprocess_iforest import EVENTS, OUTPUT_DIR, TRAIN_DAYS
 from anomaly_detection.anomali.train_hybrid import normal_rows as hybrid_normal_rows
+from anomaly_detection.anomali.train_hgb_dataprep import HGB_FEATURES
 from anomaly_detection.preprocessing.preprocess_supervised import LABEL_COVERAGE
 
 MAY = pd.Timestamp("2020-05-01")
@@ -91,6 +93,11 @@ ANOMALY_CANDIDATES = {
     "xgb_sedang": ("xgb", {"max_depth": 5, "n_estimators": 300, "learning_rate": 0.05, "min_child_weight": 5}),
     "rf": ("rf", {"n_estimators": 200, "max_depth": 12, "min_samples_leaf": 5}),
 }
+# Model anomali supervised memakai 9 fitur proses yang sama dengan HGB di sistem hybrid (duty, siklus, oli, arus,
+# tekanan). Dengan 51 fitur dan hanya 16 kejadian, model ikut belajar fluktuasi sensor sesaat dan alarm palsunya
+# dua kali lipat (10 vs 4 pada walk-forward). Pilihan ini diambil setelah membandingkan hasil walk-forward, sama seperti
+# pilihan 9 fitur untuk HGB di train_hgb_dataprep.py, jadi angkanya sedikit optimistis. IsolationForest dan RUL tetap 51 fitur.
+ANOMALY_FEATURES = list(HGB_FEATURES)
 THRESHOLD_GRID = np.round(np.arange(0.10, 0.951, 0.05), 2)
 GROUP_GAP = pd.Timedelta(days=3)
 
@@ -226,6 +233,7 @@ def anomaly_walk_forward(train_table, test, seed, cost_ratio):
     for start, end in FOLDS:
         fold_test = test[(test.index >= start) & (test.index < end)]
         X, y, n_events = anomaly_train_rows(train_table, start)
+        X = X[ANOMALY_FEATURES]
         if n_events == 0:
             parts.append(pd.DataFrame({"p_raw": 0.0, "p_cal": 0.0, "thr": 1.0, "aktif": False}, index=fold_test.index))
             choices.append({"bulan": f"{start:%b}", "kejadian_diketahui": 0, "model": "-", "ambang": np.nan})
@@ -233,7 +241,7 @@ def anomaly_walk_forward(train_table, test, seed, cost_ratio):
         known = EVENTS[EVENTS["end"] < start]
         t0 = time.time()
         name, info = inner_anomaly(X, y, X.index, known, seed, cost_ratio)
-        p_raw = members_proba(fit_members(name, X, y, seed), fold_test)
+        p_raw = members_proba(fit_members(name, X, y, seed), fold_test[ANOMALY_FEATURES])
         parts.append(pd.DataFrame({"p_raw": p_raw, "p_cal": calibrate(info["iso"], p_raw), "thr": info["threshold"], "aktif": True}, index=fold_test.index))
         choices.append(
             {
@@ -433,7 +441,7 @@ def rul_walk_forward(train_table, online_table, failure_state, seed, cost_ratio)
             }
         )
         preds.append(pd.DataFrame({"rul_prognostik": prognostic, "rul_pred": pred, "rul_bawah": lo, "rul_atas": hi, "rul_ambang": alert}, index=test.index))
-        validation = "leave-one-segment-out" if len(segments) >= 2 else "4 blok waktu di segmen 1"
+        validation = f"expanding-window segmen 1-{len(segments)}" if len(segments) >= 2 else "expanding-window 4 blok waktu di segmen 1"
         choices.append({"segmen_uji": k, "model": f"xgb_{name}", "ambang": alert, "validasi_dalam": validation, **{f"dalam_skor_{n}": round(v, 2) for n, v in inner_scores.items()}})
         print(f"  RUL segmen {k}: {name}, alarm {alert} jam, {time.time() - t0:.0f} detik", flush=True)
     return pd.DataFrame(rows), pd.concat(preds).sort_index(), pd.DataFrame(choices)
@@ -462,6 +470,7 @@ def train_final_models(train_table, seed, cost_ratio):
     """Model untuk data sesudah Agustus 2020, dilatih dengan semua data berlabel. Kinerjanya = angka walk-forward."""
     cut = train_table.index.max() + pd.Timedelta(minutes=1)
     X, y, n_events = anomaly_train_rows(train_table, cut)
+    X = X[ANOMALY_FEATURES]
     name, info = inner_anomaly(X, y, X.index, EVENTS, seed, cost_ratio)
     members = fit_members(name, X, y, seed)
 
@@ -485,7 +494,7 @@ def train_final_models(train_table, seed, cost_ratio):
         "anomaly_candidate": name,
         "anomaly_calibrator": info["iso"],
         "anomaly_threshold": float(info["threshold"]),
-        "anomaly_features": FEATURES,
+        "anomaly_features": ANOMALY_FEATURES,
         "rul_model": rul_model,
         "rul_candidate": rul_name,
         "rul_isotonic": rul_iso,
@@ -600,7 +609,7 @@ def main():
                 "model": bundle["anomaly_candidate"],
                 "kalibrasi": "isotonic dari skor out-of-fold (GroupKFold per kelompok kejadian)",
                 "ambang_terkalibrasi": bundle["anomaly_threshold"],
-                "fitur": FEATURES,
+                "fitur": ANOMALY_FEATURES,
                 "if_threshold": bundle["if_threshold"],
             },
             "rul": {

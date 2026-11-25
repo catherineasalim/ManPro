@@ -207,12 +207,16 @@ Walk-forward results, April-August 2020:
 | | Best baseline | Final |
 |---|---|---|
 | Anomaly, events detected (red) | 12/16 | 14/16, all 4 official failures |
-| Anomaly, false red alarms | 2-7 | 10 (0.46 per week) |
+| Anomaly, false red alarms | 2-7 | 4 (0.18 per week); first hybrid: 5 |
+| Anomaly, calibration ECE | 0.0021 | 0.0011 |
 | RUL, MAE all rows | 8.7 h | 12.1 h |
-| RUL, MAE before failure (0 < RUL < 72 h) | 33.2-35.1 h | 33.9 h |
-| RUL, recall of the Critical stage | 0.00 | 0.78 |
+| RUL, MAE before failure (0 < RUL < 72 h) | 33.2-35.1 h | 34.7 h |
+| RUL, recall of the Critical stage | 0.00 | 0.75 |
 
-4 of 9 targets are met. The RUL model cannot warn 24-72 hours ahead: before F1-F3 the sensors look healthy until the
+6 of 9 targets are met: all five anomaly targets, but three of the four RUL targets fail. The final anomaly model uses the same 9 process
+features as the hybrid HGB; with all 51 features it gave 10 false red alarms. That choice was made after comparing
+walk-forward results, so confirm it on data after August 2020.
+The RUL model cannot warn 24-72 hours ahead: before F1-F3 the sensors look healthy until the
 failure starts, so its error before failure is close to a naive "always 72 h" guess (38.2 h). Show RUL as a stage
 (Failure / Critical / Warning / Normal) with its interval, not as an hour countdown.
 ROI is computed in cost units (1 UB = one planned repair) with the formulas and low / base / high values from the

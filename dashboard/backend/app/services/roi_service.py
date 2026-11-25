@@ -141,6 +141,11 @@ def calculate_roi(request: ROIRequest) -> ROIResponse:
     break_even = []
     for key in ("biaya_perbaikan_darurat", "biaya_inspeksi", "biaya_sistem", "kegagalan_per_unit_tahun"):
         original = base[key]
+        if key == "biaya_sistem":
+            baseline = calculate(base)
+            threshold = baseline["reactive"] - (baseline["predictive"] - original)
+            break_even.append({"parameter": key, "nilai_sekarang": original, "titik_impas": round(threshold, 3) if threshold > 0 else None})
+            continue
         lo, hi = 0.0, max(original * 50, 1.0)
         def roi_at(value: float) -> float:
             candidate = dict(base)

@@ -30,6 +30,8 @@ def test_roi_request_returns_three_scenarios_and_sensitivity():
     assert result.detection_basis["official_recall"] == 1.0
     assert result.sensitivity
     assert result.break_even
+    system_cost_break_even = next(item for item in result.break_even if item["parameter"] == "biaya_sistem")
+    assert system_cost_break_even["titik_impas"] > result.selected.costs["biaya_sistem"]
 
 
 def test_notification_sent_only_when_status_steps_up():

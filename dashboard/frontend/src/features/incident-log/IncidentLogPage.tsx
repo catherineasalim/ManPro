@@ -52,7 +52,7 @@ export function IncidentLogPage() {
         <label>Level tertinggi<select value={level} onChange={(event) => setLevel(event.target.value as LevelFilter)}><option value="Semua">Semua level</option><option value="Kuning">Kuning</option><option value="Merah">Merah</option></select></label>
         <label>Start<input type="datetime-local" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
         <label>End<input type="datetime-local" value={to} onChange={(event) => setTo(event.target.value)} /></label>
-        <button className="button button-outline incident-reset" onClick={resetFilters}><RotateCcw size={13} />Reset filter</button>
+        <button className="button button-outline incident-reset" onClick={resetFilters}><RotateCcw size={13} />Reset filters</button>
         <span className="filter-count">{filteredAlarms.length} insiden cocok</span>
       </div>
       {error && <div className="inline-error">{error}</div>}

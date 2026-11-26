@@ -128,3 +128,4 @@ class ROIResponse(BaseModel):
     scenarios: list[ROIScenario]
     sensitivity: list[dict[str, Any]]
     break_even: list[dict[str, Any]]
+    per_failure_costs: dict[str, float | None]

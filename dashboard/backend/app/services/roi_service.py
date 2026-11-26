@@ -62,6 +62,11 @@ def calculate_roi(request: ROIRequest) -> ROIResponse:
                 raise ValueError("Kegagalan lolos preventif harus di antara 0 dan 1.")
             scenarios[request.scenario][key] = value
     selected = _scenario(request.scenario, scenarios[request.scenario])
+    annual_failure_count = selected.costs["kegagalan_per_unit_tahun"]
+    per_failure_costs = {
+        strategy: annual_cost / annual_failure_count if annual_failure_count > 0 else None
+        for strategy, annual_cost in selected.annual_costs.items()
+    }
     all_scenarios = [_scenario(name, costs) for name, costs in scenarios.items()]
 
     sensitivity = []
@@ -110,4 +115,5 @@ def calculate_roi(request: ROIRequest) -> ROIResponse:
         scenarios=all_scenarios,
         sensitivity=sensitivity,
         break_even=break_even,
+        per_failure_costs=per_failure_costs,
     )

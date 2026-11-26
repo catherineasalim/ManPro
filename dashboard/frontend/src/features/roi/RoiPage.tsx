@@ -3,9 +3,10 @@ import { Calculator, ChevronDown, ChevronUp, RotateCcw, SlidersHorizontal } from
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageIntro } from "../../components/shared/PageIntro";
 import { Panel } from "../../components/shared/Panel";
+import { useReplay } from "../../app/ReplayContext";
 import { api } from "../../lib/api";
 import { formatNumber } from "../../lib/utils";
-import type { ROIRequest, ROIResponse, ROICosts } from "../../types/api";
+import type { AlarmRecord, ROIRequest, ROIResponse, ROICosts } from "../../types/api";
 
 const fields: { key: keyof ROICosts; label: string; step: number; suffix: string }[] = [
   { key: "kegagalan_per_unit_tahun", label: "Kegagalan per unit per tahun", step: 0.1, suffix: "kejadian" },
@@ -43,8 +44,10 @@ const parameterLabels: Record<string, string> = {
 };
 
 export function RoiPage() {
+  const { cursor } = useReplay();
   const [scenario, setScenario] = useState<ROIRequest["scenario"]>("Dasar");
   const [data, setData] = useState<ROIResponse | null>(null);
+  const [alarms, setAlarms] = useState<AlarmRecord[]>([]);
   const [costs, setCosts] = useState<Partial<ROICosts>>({});
   const [assumptionsExpanded, setAssumptionsExpanded] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -57,8 +60,20 @@ export function RoiPage() {
     return () => { alive = false; };
   }, [scenario, costs]);
 
+  useEffect(() => {
+    if (!cursor) { setAlarms([]); return; }
+    let alive = true;
+    api.alarms(cursor, 1000).then((result) => { if (alive) setAlarms(result.filter((alarm) => alarm.highest_status === "Merah")); }).catch((err: Error) => { if (alive) setError(err.message); });
+    return () => { alive = false; };
+  }, [cursor]);
+
   const selected = data?.selected;
   const chartData = useMemo(() => selected ? Object.entries(selected.annual_costs).map(([name, value]) => ({ name, biaya: value, rupiah: rupiahFromUb(value, data?.rupiah_per_ub ?? 50_000_000) })) : [], [selected, data?.rupiah_per_ub]);
+  const newestAlarms = useMemo(() => [...alarms].sort((a, b) => new Date(b.red_started_at ?? b.started_at).getTime() - new Date(a.red_started_at ?? a.started_at).getTime()), [alarms]);
+  const eventCostTotals = useMemo(() => {
+    if (!data) return null;
+    return Object.fromEntries(Object.entries(data.per_failure_costs).map(([strategy, amount]) => [strategy, amount == null ? null : amount * alarms.length])) as Record<"Reaktif" | "Preventif" | "Prediktif", number | null>;
+  }, [alarms.length, data]);
   const updateCost = (key: keyof ROICosts, raw: string) => {
     if (raw === "") { setCosts((previous) => { const next = { ...previous }; delete next[key]; return next; }); return; }
     setCosts((previous) => ({ ...previous, [key]: Number(raw) }));
@@ -76,5 +91,14 @@ export function RoiPage() {
     {error && <div className="inline-error">{error}</div>}
     <div className="roi-bottom-grid"><Panel title="Analisis sensitivitas" subtitle="Rentang ROI dari asumsi -30% hingga +30%"><div className="sensitivity-list">{data?.sensitivity.slice(0, 7).map((item) => <div className="sensitivity-row" key={item.parameter}><span>{parameterLabels[item.parameter] ?? item.parameter}</span><div className="sensitivity-track"><i style={{ width: `${Math.min(100, item.rentang / Math.max(data.sensitivity[0]?.rentang ?? 1, 1) * 100)}%` }} /></div><strong>{formatNumber(item.rentang, 1)} pt</strong></div>)}</div><p className="sensitivity-explanation">Angka pt adalah selisih ROI antara hasil kedua batas tersebut.</p></Panel><Panel title="Titik impas" subtitle="Kondisi ketika ROI terhadap reaktif mencapai 0%"><div className="break-even-list">{data?.break_even.map((item) => <div className="break-even-row" key={item.parameter}><span>{parameterLabels[item.parameter] ?? item.parameter}</span><div className="break-even-value">{item.titik_impas == null ? <strong>Tidak tercapai dalam rentang uji</strong> : item.parameter === "kegagalan_per_unit_tahun" ? <strong>{formatNumber(item.titik_impas, 3)} kejadian/unit/tahun</strong> : <><strong>{formatNumber(item.titik_impas, 3)} UB{item.parameter === "biaya_sistem" ? "/tahun" : ""}</strong><small>≈ {rupiahFromUb(item.titik_impas, data?.rupiah_per_ub ?? 50_000_000)}{item.parameter === "biaya_sistem" ? "/tahun" : ""}</small></>}</div></div>)}</div></Panel></div>
     <div className="note-card"><Calculator size={18} /><div><strong>Simulasi berbasis asumsi, bukan harga operasional aktual</strong><p>Dasar perhitungan alarm mengikuti laporan. Angka rupiah dihitung dari UB sebagai ilustrasi; ubah asumsi biaya operasional sebelum memakai angka ini untuk keputusan investasi.</p></div><span>1 UB = {rupiahFromUb(1, data?.rupiah_per_ub ?? 50_000_000)}</span></div>
+    <Panel title="Log estimasi biaya selama replay" subtitle="Alarm Merah yang sudah dilewati posisi replay saat ini" className="roi-log-panel">
+      <div className="roi-replay-totals-label">Total estimasi untuk {alarms.length} alarm yang sudah dilewati</div>
+      {eventCostTotals && <div className="roi-replay-totals">{(["Reaktif", "Preventif", "Prediktif"] as const).map((strategy) => { const amount = eventCostTotals[strategy]; return <div className={`roi-replay-total ${strategy.toLowerCase()}`} key={strategy}><span>{strategy}</span><strong>{amount == null ? "—" : `${formatNumber(amount, 2)} UB`}</strong><small>{amount == null || !data ? "Belum dapat dihitung" : rupiahFromUb(amount, data.rupiah_per_ub)}</small></div>; })}</div>}
+      <div className="table-wrap roi-failure-log-wrap"><table className="data-table roi-failure-log"><thead><tr><th>Waktu alarm Merah</th><th>Durasi</th><th>Pemicu</th><th>Reaktif</th><th>Preventif</th><th>Prediktif</th></tr></thead><tbody>
+        {newestAlarms.map((alarm) => <tr key={alarm.id}><td>{new Date(alarm.red_started_at ?? alarm.started_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td><td>{formatNumber(alarm.duration_minutes, 0)} menit</td><td><strong>{alarm.trigger ?? "-"}</strong></td>{(["Reaktif", "Preventif", "Prediktif"] as const).map((strategy) => { const amount = data?.per_failure_costs[strategy]; return <td className="roi-log-cost" key={strategy}><strong>{amount == null ? "—" : `${formatNumber(amount, 2)} UB`}</strong><small>{amount == null || !data ? "Belum dapat dihitung" : rupiahFromUb(amount, data.rupiah_per_ub)}</small></td>; })}</tr>)}
+        {!alarms.length && <tr><td className="roi-log-empty" colSpan={6}>Belum ada alarm Merah yang dilewati replay.</td></tr>}
+      </tbody></table></div>
+      <p className="sensitivity-explanation">Baris muncul dari episode alarm Merah pada data replay sampai posisi saat ini dan mengikuti filter waktu replay. Dataset replay tidak menyediakan label kegagalan aktual per menit, jadi alarm Merah dipakai sebagai kejadian pemicu estimasi, bukan bukti mesin benar-benar gagal. Biaya per baris adalah biaya tahunan tiap strategi dibagi asumsi kegagalan per tahun; angka ini simulasi, bukan tagihan aktual.</p>
+    </Panel>
   </>;
 }

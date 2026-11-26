@@ -124,4 +124,5 @@ export interface ROIResponse {
   scenarios: ROIScenario[];
   sensitivity: { parameter: string; nilai: number; roi_minus_30: number; roi_plus_30: number; rentang: number }[];
   break_even: { parameter: string; nilai_sekarang: number; titik_impas: number | null }[];
+  per_failure_costs: Record<"Reaktif" | "Preventif" | "Prediktif", number | null>;
 }

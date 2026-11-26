@@ -203,6 +203,8 @@ a { color: inherit; text-decoration: none; }
 .chart-note > span:last-child { display: inline-flex; align-items: center; gap: 5px; color: #73847a; font-size: 10px; white-space: nowrap; }
 .filter-row { display: flex; align-items: end; gap: 11px; flex-wrap: wrap; }
 .filter-row label { min-width: 175px; }
+.incident-filters select { min-height: 34px; padding: 7px 9px; border: 1px solid #35433c; border-radius: 7px; color: #d8e3dc; background: #111916; font-size: 11px; }
+.incident-reset { min-height: 34px; }
 .filter-count { margin-left: auto; padding-bottom: 9px; color: #788a80; font-size: 11px; }
 .reading-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .reading-cell { padding: 10px 12px; border: 1px solid #26342d; border-radius: 8px; background: #17201c; }

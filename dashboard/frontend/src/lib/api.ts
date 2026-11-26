@@ -28,7 +28,7 @@ export const api = {
     signals.forEach((signal) => query.append("signals", signal));
     return request<TelemetryResponse>(`/telemetry?${query.toString()}`);
   },
-  alarms: (through: string) => request<AlarmRecord[]>(`/alarms?through=${encodeURIComponent(through)}`),
+  alarms: (through: string, limit = 1000) => request<AlarmRecord[]>(`/alarms?through=${encodeURIComponent(through)}&limit=${limit}`),
   notifications: (through: string) => request<NotificationRecord[]>(`/notifications?through=${encodeURIComponent(through)}`),
   roi: (body: ROIRequest) => request<ROIResponse>("/roi/calculate", { method: "POST", body: JSON.stringify(body) }),
 };

@@ -11,6 +11,7 @@ node_modules/
 dist/
 .vite/
 .pytest_cache/
+dashboard/backend/notification-deliveries.sqlite3
 
 # documents
 *.pdf

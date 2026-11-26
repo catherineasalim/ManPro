@@ -3,8 +3,13 @@ from __future__ import annotations
 import pandas as pd
 
 from app.core.config import SENSOR_FIELDS, STATUS_RANK
-from app.schemas.models import AlarmRecord, NotificationRecord
+from app.schemas.models import AlarmRecord, NotificationDispatchRequest, NotificationRecord
 from app.services.data_store import DataBundle, json_value
+from app.services.notification_delivery import (
+    dispatch_email,
+    notification_delivery_details,
+    notification_delivery_status,
+)
 
 _cached_frame_id: int | None = None
 _cached_alarms: list[AlarmRecord] = []
@@ -22,8 +27,8 @@ def _prepare_cache(bundle: DataBundle) -> None:
     frame = bundle.frame
     statuses = frame["status_final"].fillna("Abu-abu").astype(str)
     ranks = statuses.map(STATUS_RANK).fillna(-1)
-    raised = statuses.isin(["Kuning", "Merah"]) & ranks.gt(ranks.shift(1, fill_value=-1))
-    for stamp, status in statuses.loc[raised].items():
+    raised_red = statuses.eq("Merah") & ranks.gt(ranks.shift(1, fill_value=-1))
+    for stamp, status in statuses.loc[raised_red].items():
         row = frame.loc[stamp]
         trigger = row.get("pemicu_final")
         sensor_values = ", ".join(
@@ -31,14 +36,21 @@ def _prepare_cache(bundle: DataBundle) -> None:
             for name in ("TP3", "Oil_temperature", "Motor_current")
             if name in row.index and pd.notna(row[name])
         )
-        title = f"Status kompresor naik ke {status}"
-        body = f"{stamp:%d %b %Y %H:%M} WIB · Pemicu: {trigger or '-'} · {sensor_values}"
+        title = "[KRITIS] Status kompresor MetroPT-3 Merah"
+        body = (
+            "Peringatan dini: status kompresor mencapai Merah.\n"
+            f"Waktu: {stamp:%d %b %Y %H:%M} WIB\n"
+            f"Pemicu: {trigger or '-'}\n"
+            f"Sensor: {sensor_values or 'Tidak tersedia'}\n\n"
+            "Periksa kondisi kompresor dan jadwalkan tindak lanjut."
+        )
         for channel in ("Email", "WhatsApp Bot"):
             _cached_notifications.append(
                 NotificationRecord(
                     id=f"{stamp.strftime('%Y%m%d%H%M')}-{channel.lower().replace(' ', '-')}",
-                    timestamp=stamp.to_pydatetime(), status=status, channel=channel,
+                    timestamp=stamp.to_pydatetime(), status="Merah", channel=channel,
                     title=title, message=body,
+                    delivery="Belum dikirim" if channel == "Email" else "Simulasi",
                 )
             )
 
@@ -101,4 +113,31 @@ def _finish_alarm(active: dict, ended_at: pd.Timestamp) -> AlarmRecord:
 def build_notifications(bundle: DataBundle, through: str | pd.Timestamp) -> list[NotificationRecord]:
     _prepare_cache(bundle)
     end = pd.Timestamp(through).floor("min")
-    return [message for message in _cached_notifications if pd.Timestamp(message.timestamp) <= end]
+    visible = [message for message in _cached_notifications if pd.Timestamp(message.timestamp) <= end]
+    return [
+        message.model_copy(update={
+            "delivery": notification_delivery_status(message.id),
+            "delivery_error": notification_delivery_details(message.id)[1],
+        })
+        if message.channel == "Email" else message
+        for message in visible
+    ]
+
+
+def dispatch_notifications(
+    bundle: DataBundle,
+    request: NotificationDispatchRequest,
+) -> list[NotificationRecord]:
+    _prepare_cache(bundle)
+    start = pd.Timestamp(request.since)
+    end = pd.Timestamp(request.through)
+    if end <= start:
+        return []
+    crossed = [
+        message for message in _cached_notifications
+        if message.channel == "Email" and start < pd.Timestamp(message.timestamp) <= end
+    ]
+    return [
+        message.model_copy(update={"delivery": dispatch_email(message)})
+        for message in crossed
+    ]

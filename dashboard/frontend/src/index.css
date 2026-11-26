@@ -269,6 +269,11 @@ a { color: inherit; text-decoration: none; }
 .notification-content > p { margin: 6px 0; color: #a3b0a8; font-size: 11px; }
 .notification-meta { display: flex; align-items: center; gap: 7px; color: #6f8077; font-size: 10px; }
 .simulated-tag { margin-left: 3px; padding: 3px 6px; border: 1px solid #3c493e; border-radius: 99px; color: #a4b79f; background: #202920; }
+.delivery-tag { margin-left: 3px; padding: 3px 6px; border: 1px solid #3c493e; border-radius: 99px; color: #b5c1ba; background: #202920; }
+.delivery-tag.sent { border-color: #275942; color: #65d4a2; background: #1c3027; }
+.delivery-tag.failed { border-color: #673b3b; color: #f08b80; background: #342323; }
+.delivery-tag.pending { border-color: #5a4b2c; color: #dfbd73; background: #292315; }
+.delivery-error { color: #f08b80 !important; overflow-wrap: anywhere; }
 .empty-state { display: grid; justify-items: center; padding: 42px 12px; text-align: center; }
 .empty-icon { display: grid; place-items: center; width: 43px; height: 43px; margin-bottom: 11px; border-radius: 13px; color: #82978a; background: #202b25; }
 .empty-state strong { font-size: 12px; }.empty-state p { margin: 6px 0 0; color: #77877e; font-size: 11px; }

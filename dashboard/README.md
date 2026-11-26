@@ -2,7 +2,7 @@
 
 Dashboard demo untuk memantau data telemetri kompresor Metro do Porto, mengeksplorasi status anomali dan RUL, melihat simulasi notifikasi, serta membandingkan biaya strategi perawatan.
 
-Dashboard berjalan lokal dan menggunakan **replay data historis**. Tidak ada koneksi sensor real-time, unggah CSV, atau pengiriman email/WhatsApp sungguhan.
+Dashboard berjalan lokal dan menggunakan **replay data historis**. Email Mailtrap dapat dikirim saat replay melewati alarm Merah; WhatsApp tetap simulasi. Tidak ada koneksi sensor real-time atau unggah CSV.
 
 **[Baca ALUR.md](ALUR.md)** untuk penjelasan sederhana tentang peran folder, alur data dan model, cara kerja replay, serta asal keluaran dashboard.
 
@@ -14,7 +14,7 @@ Navigasi dashboard terdiri dari tujuh halaman:
 2. **Telemetri** — grafik TP2, TP3, suhu oli, dan arus motor dengan filter waktu dan zoom.
 3. **Deteksi anomali** — skor terkalibrasi, status, pemicu, dan penjelasan tiap level.
 4. **Remaining useful life** — RUL dalam jam/hari, tahap risiko, dan rentang perkiraan jika tersedia.
-5. **Notifikasi** — pratinjau simulasi pesan email dan WhatsApp Bot saat status naik ke Kuning atau Merah.
+5. **Notifikasi** — hanya alarm Merah yang ditampilkan; email dapat dikirim via Mailtrap dan WhatsApp Bot tetap simulasi.
 6. **Log insiden** — episode alarm beserta durasi, pemicu, dan cuplikan sensor.
 7. **Biaya & ROI** — kalkulator asumsi biaya reaktif, preventif, dan prediktif, beserta sensitivitas dan titik impas.
 
@@ -58,7 +58,7 @@ Copy-Item .env.example .env
 python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-`dtsc` adalah contoh nama environment Conda; ganti jika environment-mu berbeda. Jika paket backend sudah ada di environment, langkah `pip install` dapat dilewati. API berjalan di `http://127.0.0.1:8000`; dokumentasi interaktif tersedia di `http://127.0.0.1:8000/docs`.
+`dtsc` adalah contoh nama environment Conda; ganti jika environment-mu berbeda. Jika paket backend sudah ada di environment, langkah `pip install` dapat dilewati. Sebelum menjalankan backend, isi `MAILTRAP_API_KEY` pada `dashboard/backend/.env`; alamat pengirim dan penerima mengikuti konfigurasi Mailtrap di `app/core/config.py` dan dapat dioverride lewat variabel `.env`. Jika API key kosong, replay tetap berjalan dan email berstatus belum dikonfigurasi. API berjalan di `http://127.0.0.1:8000`; dokumentasi interaktif tersedia di `http://127.0.0.1:8000/docs`.
 
 ### 2. React frontend
 
@@ -127,7 +127,8 @@ Semua endpoint berada di bawah `/api`.
 | `GET` | `/replay/frame?timestamp=...` | Status, sensor, skor, dan RUL pada satu menit |
 | `GET` | `/telemetry?start=...&end=...&signals=TP2&signals=TP3` | Data grafik dengan batas jumlah titik |
 | `GET` | `/alarms?through=...` | Episode alarm hingga posisi replay |
-| `GET` | `/notifications?through=...` | Notifikasi simulasi hingga posisi replay |
+| `GET` | `/notifications?through=...` | Riwayat alarm Merah dan status pengiriman hingga posisi replay |
+| `POST` | `/notifications/dispatch` | Mengirim email untuk alarm Merah yang terlewati pemutaran replay |
 | `POST` | `/roi/calculate` | Biaya, ROI, sensitivitas, dan titik impas |
 
 Contoh request kalkulator:

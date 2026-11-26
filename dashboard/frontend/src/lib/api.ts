@@ -30,5 +30,9 @@ export const api = {
   },
   alarms: (through: string, limit = 1000) => request<AlarmRecord[]>(`/alarms?through=${encodeURIComponent(through)}&limit=${limit}`),
   notifications: (through: string) => request<NotificationRecord[]>(`/notifications?through=${encodeURIComponent(through)}`),
+  dispatchNotifications: (since: string, through: string) => request<NotificationRecord[]>("/notifications/dispatch", {
+    method: "POST",
+    body: JSON.stringify({ since, through }),
+  }),
   roi: (body: ROIRequest) => request<ROIResponse>("/roi/calculate", { method: "POST", body: JSON.stringify(body) }),
 };

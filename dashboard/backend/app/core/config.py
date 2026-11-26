@@ -18,6 +18,11 @@ DATA_DIR = REPO_ROOT / "anomaly_detection" / "output"
 ONLINE_PATH = DATA_DIR / "dataprep" / "dataset_online_1min.parquet"
 PREDICTION_PATH = DATA_DIR / "model" / "prediksi_walkforward.parquet"
 METADATA_PATH = DATA_DIR / "model" / "final" / "metadata.json"
+NOTIFICATION_DELIVERY_DB = BACKEND_DIR / "notification-deliveries.sqlite3"
+MAILTRAP_API_KEY = os.getenv("MAILTRAP_API_KEY", "").strip()
+MAILTRAP_SENDER_EMAIL = (os.getenv("MAILTRAP_SENDER_EMAIL") or "hello@demomailtrap.co").strip()
+MAILTRAP_SENDER_NAME = (os.getenv("MAILTRAP_SENDER_NAME") or "MetroPT3-Dashboard").strip()
+MAILTRAP_RECIPIENT_EMAIL = (os.getenv("MAILTRAP_RECIPIENT_EMAIL") or "maintrap@trap.com").strip()
 API_PREFIX = os.getenv("DASHBOARD_API_PREFIX", "/api")
 CORS_ORIGINS = [
     origin.strip()

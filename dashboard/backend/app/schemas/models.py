@@ -97,7 +97,13 @@ class NotificationRecord(BaseModel):
     channel: str
     title: str
     message: str
-    delivery: str = "Simulasi"
+    delivery: str = "Belum dikirim"
+    delivery_error: str | None = None
+
+
+class NotificationDispatchRequest(BaseModel):
+    since: datetime
+    through: datetime
 
 
 class ROIRequest(BaseModel):

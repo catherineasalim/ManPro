@@ -52,12 +52,19 @@ export function ReplayProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!playing || !cursor || !metadata) return;
     const timer = window.setInterval(() => {
-      const next = new Date(new Date(cursor).getTime() + speed * 60_000);
+      const currentTime = new Date(cursor);
+      const next = new Date(currentTime.getTime() + speed * 60_000);
       const max = new Date(metadata.end);
-      if (next >= max) {
+      const reachedEnd = next >= max;
+      const through = reachedEnd ? max : next;
+      if (through > currentTime) {
+        api.dispatchNotifications(localTimestamp(currentTime), localTimestamp(through))
+          .catch((err: Error) => setError(err.message));
+      }
+      if (reachedEnd) {
         setCursorState(metadata.start);
       } else {
-        setCursorState(localTimestamp(next));
+        setCursorState(localTimestamp(through));
       }
     }, 1000);
     return () => window.clearInterval(timer);

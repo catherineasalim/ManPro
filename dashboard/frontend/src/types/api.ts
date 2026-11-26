@@ -85,7 +85,8 @@ export interface NotificationRecord {
   channel: "Email" | "WhatsApp Bot";
   title: string;
   message: string;
-  delivery: "Simulasi";
+  delivery: "Simulasi" | "Belum dikirim" | "Belum dikonfigurasi" | "Mengirim" | "Terkirim" | "Gagal";
+  delivery_error: string | null;
 }
 
 export interface ROICosts {

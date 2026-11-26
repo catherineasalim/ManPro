@@ -14,7 +14,7 @@ Navigasi dashboard terdiri dari tujuh halaman:
 2. **Telemetri** — grafik TP2, TP3, suhu oli, dan arus motor dengan filter waktu dan zoom.
 3. **Deteksi anomali** — skor terkalibrasi, status, pemicu, dan penjelasan tiap level.
 4. **Remaining useful life** — RUL dalam jam/hari, tahap risiko, dan rentang perkiraan jika tersedia.
-5. **Notifikasi** — pratinjau simulasi pesan email dan WhatsApp Bot saat status naik ke Kuning atau Merah.
+5. **Notifikasi** — pratinjau simulasi pesan email dan WhatsApp Bot untuk status Merah saja, satu pesan per episode Merah (jeda penggabungan 30 menit). Kuning tidak dikirim dan hanya tampil di log insiden, sesuai laporan.
 6. **Log insiden** — episode alarm beserta durasi, pemicu, dan cuplikan sensor.
 7. **Biaya & ROI** — kalkulator asumsi biaya reaktif, preventif, dan prediktif, beserta sensitivitas dan titik impas.
 

@@ -2,28 +2,36 @@ from __future__ import annotations
 
 import pandas as pd
 
-from app.core.config import SENSOR_FIELDS, STATUS_RANK
+from app.core.config import SENSOR_FIELDS
 from app.schemas.models import AlarmRecord, NotificationRecord
 from app.services.data_store import DataBundle, json_value
 
-_cached_frame_id: int | None = None
+# Aturan notifikasi (LAPORAN_ANALISIS.md bagian 9.2): hanya status Merah yang dikirim ke teknisi.
+# Kuning cukup tampil di dashboard dan log insiden karena alarm palsunya sekitar 3 per minggu.
+# Satu notifikasi per episode Merah. Jeda penggabungan 30 menit sama dengan MERGE_MIN di
+# anomaly_detection/common/hybrid.py, jadi alarm Merah yang naik-turun tidak mengirim pesan berulang.
+NOTIFY_STATUS = "Merah"
+NOTIFY_MERGE_MINUTES = 30
+
+_cached_frame: pd.DataFrame | None = None
 _cached_alarms: list[AlarmRecord] = []
 _cached_notifications: list[NotificationRecord] = []
 
 
 def _prepare_cache(bundle: DataBundle) -> None:
-    global _cached_frame_id, _cached_alarms, _cached_notifications
-    frame_id = id(bundle.frame)
-    if _cached_frame_id == frame_id:
+    global _cached_frame, _cached_alarms, _cached_notifications
+    if _cached_frame is bundle.frame:
         return
-    _cached_frame_id = frame_id
+    _cached_frame = bundle.frame
     _cached_alarms = []
     _cached_notifications = []
     frame = bundle.frame
     statuses = frame["status_final"].fillna("Abu-abu").astype(str)
-    ranks = statuses.map(STATUS_RANK).fillna(-1)
-    raised = statuses.isin(["Kuning", "Merah"]) & ranks.gt(ranks.shift(1, fill_value=-1))
-    for stamp, status in statuses.loc[raised].items():
+    red_times = statuses.index[statuses.eq(NOTIFY_STATUS)].to_series()
+    gaps = red_times.diff()
+    episode_starts = red_times.loc[gaps.isna() | gaps.gt(pd.Timedelta(minutes=NOTIFY_MERGE_MINUTES))]
+    for stamp in episode_starts.index:
+        status = NOTIFY_STATUS
         row = frame.loc[stamp]
         trigger = row.get("pemicu_final")
         sensor_values = ", ".join(
